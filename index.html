@@ -393,7 +393,7 @@
           <div class="card">
             <h3 style="margin-top:0;">Buddy Pool <span class="helptext" style="display:inline;">(persists across batches)</span></h3>
             <div style="max-height:520px;overflow:auto;">
-              <table><thead><tr><th>Name</th><th>Emp ID</th><th>Designation</th><th>Region</th><th>Depot</th><th>Status</th></tr></thead>
+              <table><thead><tr><th>Name</th><th>Emp ID</th><th>Designation</th><th>Region</th><th>Depot</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody id="rtl-buddy-table"></tbody></table>
             </div>
           </div>
@@ -493,6 +493,28 @@
     <div class="rowflex" style="margin-top:22px;justify-content:space-between;">
       <button class="btn" id="save-intern-edit-btn">Save Changes</button>
       <button class="btn ghost" id="delete-intern-btn" style="border-color:#B24A3C;color:#B24A3C;">Remove Intern from Batch</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="buddy-edit-overlay">
+  <div class="modal-box">
+    <button class="modal-close" id="buddy-edit-close">✕</button>
+    <h2>Edit Buddy</h2>
+    <p class="sub" id="buddy-edit-meta"></p>
+    <label>Name</label>
+    <input type="text" id="edit-bd-name" placeholder="e.g. Meera Joshi">
+    <label>Designation</label>
+    <input type="text" id="edit-bd-desig" placeholder="e.g. Area Sales Manager">
+    <label>Region</label>
+    <input type="text" id="edit-bd-region" placeholder="e.g. Maharashtra">
+    <label>Depot Name</label>
+    <input type="text" id="edit-bd-depot" placeholder="e.g. Pune Depot">
+    <label>Status</label>
+    <select id="edit-bd-status"><option>Active</option><option>Inactive</option></select>
+    <div class="rowflex" style="margin-top:22px;justify-content:space-between;">
+      <button class="btn" id="save-buddy-edit-btn">Save Changes</button>
+      <button class="btn ghost" id="delete-buddy-btn" style="border-color:#B24A3C;color:#B24A3C;">Remove from Buddy Pool</button>
     </div>
   </div>
 </div>
@@ -1208,9 +1230,13 @@ function renderRtlView(){
     btn.addEventListener('click', ()=> renderBatchDrilldown(btn.dataset.batchid, btn.dataset.target));
   });
 
-  document.getElementById('rtl-buddy-table').innerHTML = buddies.map(b=>`
-    <tr><td>${b.name}</td><td>${b.empId}</td><td>${b.designation}</td><td>${b.region}</td><td>${b.depotName||'—'}</td><td>${swatch('completed')}</td></tr>
-  `).join('') || `<tr><td colspan="6" class="empty">No buddies yet.</td></tr>`;
+  document.getElementById('rtl-buddy-table').innerHTML = buddies.map((b,idx)=>`
+    <tr><td>${b.name}</td><td>${b.empId}</td><td>${b.designation}</td><td>${b.region}</td><td>${b.depotName||'—'}</td><td>${swatch(b.status==='Active'?'completed':'pending')}</td>
+    <td><button class="btn ghost small edit-buddy-btn" data-idx="${idx}">Edit</button></td></tr>
+  `).join('') || `<tr><td colspan="7" class="empty">No buddies yet.</td></tr>`;
+  document.querySelectorAll('#rtl-buddy-table .edit-buddy-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> openBuddyEditModal(parseInt(btn.dataset.idx)));
+  });
 
   document.getElementById('rtl-intern-table').innerHTML = interns.map(i=>{
     const idx = interns.indexOf(i);
@@ -1376,6 +1402,63 @@ document.getElementById('delete-intern-btn').addEventListener('click', async ()=
   document.getElementById('intern-edit-overlay').classList.remove('show');
   renderRtlView();
   showToast(intern.name + " removed from batch");
+});
+
+/* ================= BUDDY EDIT (RTL only): update details, remove from pool ================= */
+let editBuddyFocusIdx = null;
+function openBuddyEditModal(idx){
+  const buddy = buddies[idx];
+  if(!buddy) return;
+  editBuddyFocusIdx = idx;
+  document.getElementById('buddy-edit-meta').textContent = `${buddy.empId}`;
+  document.getElementById('edit-bd-name').value = buddy.name || '';
+  document.getElementById('edit-bd-desig').value = buddy.designation && buddy.designation!=='—' ? buddy.designation : '';
+  document.getElementById('edit-bd-region').value = buddy.region && buddy.region!=='—' ? buddy.region : '';
+  document.getElementById('edit-bd-depot').value = buddy.depotName && buddy.depotName!=='—' ? buddy.depotName : '';
+  document.getElementById('edit-bd-status').value = buddy.status || 'Active';
+  document.getElementById('buddy-edit-overlay').classList.add('show');
+}
+document.getElementById('buddy-edit-close').addEventListener('click', ()=>{
+  document.getElementById('buddy-edit-overlay').classList.remove('show');
+});
+document.getElementById('buddy-edit-overlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'buddy-edit-overlay') document.getElementById('buddy-edit-overlay').classList.remove('show');
+});
+
+document.getElementById('save-buddy-edit-btn').addEventListener('click', async ()=>{
+  if(editBuddyFocusIdx===null) return;
+  const buddy = buddies[editBuddyFocusIdx];
+  const name = document.getElementById('edit-bd-name').value.trim();
+  if(!name){ showToast("Buddy name can't be empty"); return; }
+  buddy.name = name;
+  buddy.designation = document.getElementById('edit-bd-desig').value.trim() || '—';
+  buddy.region = document.getElementById('edit-bd-region').value.trim() || '—';
+  buddy.depotName = document.getElementById('edit-bd-depot').value.trim() || '—';
+  buddy.status = document.getElementById('edit-bd-status').value;
+  await saveBuddies();
+  document.getElementById('buddy-edit-overlay').classList.remove('show');
+  renderRtlView();
+  showToast(buddy.name + "'s details updated");
+});
+
+document.getElementById('delete-buddy-btn').addEventListener('click', async ()=>{
+  if(editBuddyFocusIdx===null) return;
+  const buddy = buddies[editBuddyFocusIdx];
+  const assignedCount = interns.filter(i=>i.buddyEmpId===buddy.empId).length;
+  const warnExtra = assignedCount>0 ? ` They currently mentor ${assignedCount} intern(s), who will show as "No Buddy Assigned" afterward.` : '';
+  if(!confirm(`Remove ${buddy.name} (${buddy.empId}) from the Buddy Pool?${warnExtra} This cannot be undone.`)) return;
+  try{
+    const {error} = await sb.from('buddies').delete().eq('emp_id', buddy.empId);
+    if(error) throw error;
+  }catch(e){
+    showDbError('Delete buddy failed', e);
+    return;
+  }
+  buddies.splice(editBuddyFocusIdx, 1);
+  editBuddyFocusIdx = null;
+  document.getElementById('buddy-edit-overlay').classList.remove('show');
+  renderRtlView();
+  showToast(buddy.name + " removed from Buddy Pool");
 });
 
 document.getElementById('create-batch-btn').addEventListener('click', async ()=>{
