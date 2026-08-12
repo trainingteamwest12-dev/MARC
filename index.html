@@ -379,20 +379,21 @@
             <label>Name</label><input type="text" id="bd-name" placeholder="e.g. Meera Joshi">
             <label>Employee ID</label><input type="text" id="bd-empid" placeholder="e.g. BUD2205">
             <label>Designation</label><input type="text" id="bd-desig" placeholder="e.g. Area Sales Manager">
-            <label>Region / State</label><input type="text" id="bd-region" placeholder="e.g. Maharashtra">
+            <label>Region</label><input type="text" id="bd-region" placeholder="e.g. Maharashtra">
+            <label>Depot Name</label><input type="text" id="bd-depot" placeholder="e.g. Pune Depot">
             <div style="margin-top:18px;"><button class="btn" id="add-buddy-btn">Add to Pool</button></div>
             <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--line);">
               <h3 style="margin:0 0 8px;font-size:13px;">Bulk Upload Buddy Pool</h3>
               <button class="btn ghost small" id="download-buddy-template">Download CSV Template</button>
               <label>Upload Completed Template</label>
               <input type="file" id="buddy-csv-upload" accept=".csv">
-              <p class="helptext">Columns: Name, Employee ID, Designation, Region</p>
+              <p class="helptext">Columns: Name, Employee ID, Designation, Region, Depot Name</p>
             </div>
           </div>
           <div class="card">
             <h3 style="margin-top:0;">Buddy Pool <span class="helptext" style="display:inline;">(persists across batches)</span></h3>
             <div style="max-height:520px;overflow:auto;">
-              <table><thead><tr><th>Name</th><th>Emp ID</th><th>Designation</th><th>Region</th><th>Status</th></tr></thead>
+              <table><thead><tr><th>Name</th><th>Emp ID</th><th>Designation</th><th>Region</th><th>Depot</th><th>Status</th></tr></thead>
               <tbody id="rtl-buddy-table"></tbody></table>
             </div>
           </div>
@@ -412,13 +413,14 @@
               <option>Retail Sales</option><option>Distribution</option><option>Urban Market</option>
               <option>Business Development</option><option>Prolinks</option><option>RPO</option>
             </select>
-            <label>State</label>
-            <select id="f-state"><option>Maharashtra</option><option>Goa</option><option>Gujarat</option><option>Madhya Pradesh</option></select>
+            <label>Region</label>
+            <select id="f-region"><option>Maharashtra</option><option>Goa</option><option>Gujarat</option><option>Madhya Pradesh</option></select>
+            <label>Depot Name</label><input type="text" id="f-depot" placeholder="e.g. Pune Depot">
             <div style="margin-top:18px;"><button class="btn" id="add-intern-btn">Add Intern</button></div>
           </div>
           <div class="card">
             <h3 style="margin-top:0;">Bulk Upload — Create Batch Roster</h3>
-            <p class="helptext">Columns: Intern Name, Employee ID, Batch, Buddy Employee ID, Sub-Function, State</p>
+            <p class="helptext">Columns: Intern Name, Employee ID, Batch, Buddy Employee ID, Sub-Function, Region, Depot Name</p>
             <button class="btn ghost small" id="download-template">Download CSV Template</button>
             <label>Upload Completed Template</label>
             <input type="file" id="csv-upload" accept=".csv">
@@ -428,7 +430,7 @@
         <section>
           <h3>All Interns — All Batches <span class="helptext" style="display:inline;">(click a name for full journey detail)</span></h3>
           <div class="card" style="padding:0;">
-            <table><thead><tr><th>Intern</th><th>Emp ID</th><th>Batch</th><th>Buddy</th><th>Sub-Function</th><th>Status</th><th>Completion</th><th>Buddy Rating</th><th>Overall Score</th></tr></thead>
+            <table><thead><tr><th>Intern</th><th>Emp ID</th><th>Batch</th><th>Buddy</th><th>Sub-Function</th><th>Status</th><th>Completion</th><th>Buddy Rating</th><th>Overall Score</th><th>Actions</th></tr></thead>
             <tbody id="rtl-intern-table"></tbody></table>
           </div>
         </section>
@@ -453,8 +455,8 @@
         <div class="card" style="padding:0;"><table><thead><tr><th>Batch</th><th>Type</th><th>Status</th><th>Total</th><th>Completed</th><th>Delayed</th></tr></thead><tbody id="head-batch-table"></tbody></table></div>
         <div class="drilldown" id="head-batch-drilldown"></div>
       </section>
-      <section><h3>State-wise Breakdown</h3>
-        <div class="card" style="padding:0;"><table><thead><tr><th>State</th><th>Total</th><th>Completed</th><th>Delayed</th></tr></thead><tbody id="head-state-table"></tbody></table></div>
+      <section><h3>Region-wise Breakdown</h3>
+        <div class="card" style="padding:0;"><table><thead><tr><th>Region</th><th>Total</th><th>Completed</th><th>Delayed</th></tr></thead><tbody id="head-state-table"></tbody></table></div>
       </section>
       <section><h3>Buddy Performance <span class="helptext" style="display:inline;">(across all batches)</span></h3>
         <div class="card" style="padding:0;"><table><thead><tr><th>Buddy</th><th>Region</th><th>Interns Mentored</th><th>Avg Intern Completion</th><th>Buddy Effectiveness (feedback received)</th><th>Buddy's Avg Rating Given</th></tr></thead><tbody id="head-buddy-table"></tbody></table></div>
@@ -469,6 +471,29 @@
   <div class="modal-box">
     <button class="modal-close" id="intern-modal-close">✕</button>
     <div id="intern-modal-body"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="intern-edit-overlay">
+  <div class="modal-box">
+    <button class="modal-close" id="intern-edit-close">✕</button>
+    <h2>Edit Intern</h2>
+    <p class="sub" id="intern-edit-meta"></p>
+    <label>Assigned Buddy</label>
+    <select id="edit-buddy"></select>
+    <label>Sub-Function</label>
+    <select id="edit-subfunction">
+      <option>Retail Sales</option><option>Distribution</option><option>Urban Market</option>
+      <option>Business Development</option><option>Prolinks</option><option>RPO</option>
+    </select>
+    <label>Region</label>
+    <input type="text" id="edit-region" placeholder="e.g. Maharashtra">
+    <label>Depot Name</label>
+    <input type="text" id="edit-depot" placeholder="e.g. Pune Depot">
+    <div class="rowflex" style="margin-top:22px;justify-content:space-between;">
+      <button class="btn" id="save-intern-edit-btn">Save Changes</button>
+      <button class="btn ghost" id="delete-intern-btn" style="border-color:#B24A3C;color:#B24A3C;">Remove Intern from Batch</button>
+    </div>
   </div>
 </div>
 
@@ -607,15 +632,15 @@ const SEED_BATCHES = [
   {id:"WEST-OTR-2026-01", name:"WEST-OTR-2026-01", type:"Off-Role to On-Role", start:"2026-04-01", close:computeCloseDate("2026-04-01","Off-Role to On-Role"), rtl:"Dummy 1", status:"Closed"}
 ];
 const SEED_BUDDIES = [
-  {name:"Sanjay Kulkarni", empId:"BUD2201", designation:"Area Sales Manager", region:"Maharashtra", status:"Active"},
-  {name:"Meera Joshi", empId:"BUD2202", designation:"Territory Sales Officer", region:"Gujarat", status:"Active"},
-  {name:"Vikram Rao", empId:"BUD2203", designation:"Area Sales Manager", region:"Madhya Pradesh", status:"Active"}
+  {name:"Sanjay Kulkarni", empId:"BUD2201", designation:"Area Sales Manager", region:"Maharashtra", depotName:"Pune Depot", status:"Active"},
+  {name:"Meera Joshi", empId:"BUD2202", designation:"Territory Sales Officer", region:"Gujarat", depotName:"Ahmedabad Depot", status:"Active"},
+  {name:"Vikram Rao", empId:"BUD2203", designation:"Area Sales Manager", region:"Madhya Pradesh", depotName:"Indore Depot", status:"Active"}
 ];
 const SEED_INTERNS = [
-  {name:"Rahul Deshmukh", empId:"INT1001", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2201", subFunction:"Retail Sales", state:"Maharashtra", completion:55, status:"progress", buddyAssigned:"Yes", rtl:"Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4), fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[{text:"Buddy Sanjay Kulkarni assigned to you", ts:Date.now()-6*86400000}]},
-  {name:"Neha Patil", empId:"INT1002", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2201", subFunction:"Urban Market", state:"Goa", completion:30, status:"progress", buddyAssigned:"Yes", rtl:"Not Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4), fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]},
-  {name:"Karan Mehta", empId:"INT1003", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2202", subFunction:"Business Development", state:"Gujarat", completion:15, status:"progress", buddyAssigned:"No", rtl:"Not Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4), fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]},
-  {name:"Devika Rao", empId:"INT0901", batchId:"WEST-OTR-2026-01", buddyEmpId:"BUD2203", subFunction:"Distribution", state:"Madhya Pradesh", completion:100, status:"completed", buddyAssigned:"Yes", rtl:"Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4), fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]}
+  {name:"Rahul Deshmukh", empId:"INT1001", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2201", subFunction:"Retail Sales", region:"Maharashtra", depotName:"Pune Depot", completion:55, status:"progress", buddyAssigned:"Yes", rtl:"Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4), fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[{text:"Buddy Sanjay Kulkarni assigned to you", ts:Date.now()-6*86400000}]},
+  {name:"Neha Patil", empId:"INT1002", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2201", subFunction:"Urban Market", region:"Goa", depotName:"Panaji Depot", completion:30, status:"progress", buddyAssigned:"Yes", rtl:"Not Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4), fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]},
+  {name:"Karan Mehta", empId:"INT1003", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2202", subFunction:"Business Development", region:"Gujarat", depotName:"Ahmedabad Depot", completion:15, status:"progress", buddyAssigned:"No", rtl:"Not Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4), fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]},
+  {name:"Devika Rao", empId:"INT0901", batchId:"WEST-OTR-2026-01", buddyEmpId:"BUD2203", subFunction:"Distribution", region:"Madhya Pradesh", depotName:"Indore Depot", completion:100, status:"completed", buddyAssigned:"Yes", rtl:"Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4), fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]}
 ];
 
 let batches = [], buddies = [], interns = [];
@@ -1184,8 +1209,8 @@ function renderRtlView(){
   });
 
   document.getElementById('rtl-buddy-table').innerHTML = buddies.map(b=>`
-    <tr><td>${b.name}</td><td>${b.empId}</td><td>${b.designation}</td><td>${b.region}</td><td>${swatch('completed')}</td></tr>
-  `).join('') || `<tr><td colspan="5" class="empty">No buddies yet.</td></tr>`;
+    <tr><td>${b.name}</td><td>${b.empId}</td><td>${b.designation}</td><td>${b.region}</td><td>${b.depotName||'—'}</td><td>${swatch('completed')}</td></tr>
+  `).join('') || `<tr><td colspan="6" class="empty">No buddies yet.</td></tr>`;
 
   document.getElementById('rtl-intern-table').innerHTML = interns.map(i=>{
     const idx = interns.indexOf(i);
@@ -1194,10 +1219,14 @@ function renderRtlView(){
     const bfAvg = buddyFbAvg(i);
     const overall = overallBlendedScore(i);
     return `<tr><td><button class="link-btn" data-idx="${idx}">${i.name}</button></td><td>${i.empId}</td><td>${batch?batch.name:'—'}</td><td>${buddy?buddy.name:'—'}</td><td>${i.subFunction}</td><td>${swatch(i.status)}</td>
-    <td><div class="bar"><div style="width:${i.completion}%;"></div></div></td><td>${bfAvg!==null ? bfAvg.toFixed(1)+'/5' : '<span class="helptext">Pending</span>'}</td><td>${overall!==null ? '<b>'+overall.toFixed(1)+'/5</b>' : '<span class="helptext">Pending</span>'}</td></tr>`;
-  }).join('') || `<tr><td colspan="7" class="empty">No interns yet.</td></tr>`;
+    <td><div class="bar"><div style="width:${i.completion}%;"></div></div></td><td>${bfAvg!==null ? bfAvg.toFixed(1)+'/5' : '<span class="helptext">Pending</span>'}</td><td>${overall!==null ? '<b>'+overall.toFixed(1)+'/5</b>' : '<span class="helptext">Pending</span>'}</td>
+    <td><button class="btn ghost small edit-intern-btn" data-idx="${idx}">Edit</button></td></tr>`;
+  }).join('') || `<tr><td colspan="10" class="empty">No interns yet.</td></tr>`;
   document.querySelectorAll('#rtl-intern-table .link-btn').forEach(btn=>{
     btn.addEventListener('click', ()=> openInternModal(parseInt(btn.dataset.idx)));
+  });
+  document.querySelectorAll('#rtl-intern-table .edit-intern-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> openInternEditModal(parseInt(btn.dataset.idx)));
   });
 }
 
@@ -1259,7 +1288,7 @@ function openInternModal(idx){
 
   document.getElementById('intern-modal-body').innerHTML = `
     <h2>${intern.name}</h2>
-    <p class="sub">Emp ID: ${intern.empId} · Batch: ${batch?batch.name:'—'} · Sub-Function: ${intern.subFunction} · Buddy: ${buddy?buddy.name:'Not assigned'} · RTL Induction: ${intern.rtl}</p>
+    <p class="sub">Emp ID: ${intern.empId} · Batch: ${batch?batch.name:'—'} · Sub-Function: ${intern.subFunction} · Region: ${intern.region||'—'} · Depot: ${intern.depotName||'—'} · Buddy: ${buddy?buddy.name:'Not assigned'} · RTL Induction: ${intern.rtl}</p>
     <div class="grid cols-4">
       <div class="stat"><div class="num">${intern.buddyAssigned}</div><div class="lbl">Buddy Assigned</div></div>
       <div class="stat"><div class="num">${Object.values(intern.ojt).filter(v=>v==='Completed').length}/6</div><div class="lbl">OJT Completed</div></div>
@@ -1287,6 +1316,68 @@ document.getElementById('intern-modal-overlay').addEventListener('click', (e)=>{
   if(e.target.id === 'intern-modal-overlay') document.getElementById('intern-modal-overlay').classList.remove('show');
 });
 
+/* ================= INTERN EDIT (RTL only): reassign buddy, region, depot, sub-function, remove ================= */
+let editFocusIdx = null;
+function openInternEditModal(idx){
+  const intern = interns[idx];
+  if(!intern) return;
+  editFocusIdx = idx;
+  const batch = batches.find(b=>b.id===intern.batchId);
+
+  document.getElementById('intern-edit-meta').textContent = `${intern.name} (${intern.empId}) · Batch: ${batch?batch.name:'—'}`;
+  document.getElementById('edit-buddy').innerHTML = `<option value="">— No Buddy Assigned —</option>` +
+    buddies.map(b=>`<option value="${b.empId}" ${b.empId===intern.buddyEmpId?'selected':''}>${b.name} (${b.empId})</option>`).join('');
+  document.getElementById('edit-subfunction').value = intern.subFunction;
+  document.getElementById('edit-region').value = intern.region || '';
+  document.getElementById('edit-depot').value = intern.depotName && intern.depotName!=='—' ? intern.depotName : '';
+
+  document.getElementById('intern-edit-overlay').classList.add('show');
+}
+document.getElementById('intern-edit-close').addEventListener('click', ()=>{
+  document.getElementById('intern-edit-overlay').classList.remove('show');
+});
+document.getElementById('intern-edit-overlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'intern-edit-overlay') document.getElementById('intern-edit-overlay').classList.remove('show');
+});
+
+document.getElementById('save-intern-edit-btn').addEventListener('click', async ()=>{
+  if(editFocusIdx===null) return;
+  const intern = interns[editFocusIdx];
+  const newBuddyEmpId = document.getElementById('edit-buddy').value;
+  const buddyChanged = newBuddyEmpId !== intern.buddyEmpId;
+  intern.buddyEmpId = newBuddyEmpId;
+  intern.subFunction = document.getElementById('edit-subfunction').value;
+  intern.region = document.getElementById('edit-region').value.trim();
+  intern.depotName = document.getElementById('edit-depot').value.trim() || '—';
+  if(buddyChanged){
+    intern.buddyAssigned = newBuddyEmpId ? "Yes" : "No";
+    const newBuddy = buddies.find(b=>b.empId===newBuddyEmpId);
+    pushNotification(intern, newBuddy ? `Buddy reassigned: ${newBuddy.name}` : "Buddy assignment removed");
+  }
+  await saveInterns();
+  document.getElementById('intern-edit-overlay').classList.remove('show');
+  renderRtlView();
+  showToast(intern.name + "'s details updated");
+});
+
+document.getElementById('delete-intern-btn').addEventListener('click', async ()=>{
+  if(editFocusIdx===null) return;
+  const intern = interns[editFocusIdx];
+  if(!confirm(`Remove ${intern.name} (${intern.empId}) from this batch? This cannot be undone.`)) return;
+  try{
+    const {error} = await sb.from('interns').delete().eq('emp_id', intern.empId).eq('batch_id', intern.batchId);
+    if(error) throw error;
+  }catch(e){
+    showDbError('Delete intern failed', e);
+    return;
+  }
+  interns.splice(editFocusIdx, 1);
+  editFocusIdx = null;
+  document.getElementById('intern-edit-overlay').classList.remove('show');
+  renderRtlView();
+  showToast(intern.name + " removed from batch");
+});
+
 document.getElementById('create-batch-btn').addEventListener('click', async ()=>{
   const name = document.getElementById('b-name').value.trim();
   const type = document.getElementById('b-type').value;
@@ -1305,16 +1396,17 @@ document.getElementById('add-buddy-btn').addEventListener('click', async ()=>{
   const empId = document.getElementById('bd-empid').value.trim();
   const desig = document.getElementById('bd-desig').value.trim();
   const region = document.getElementById('bd-region').value.trim();
+  const depotName = document.getElementById('bd-depot').value.trim();
   if(!name || !empId){ showToast("Enter buddy name and Employee ID"); return; }
-  buddies.push({name, empId, designation:desig||'—', region:region||'—', status:'Active'});
+  buddies.push({name, empId, designation:desig||'—', region:region||'—', depotName:depotName||'—', status:'Active'});
   await saveBuddies();
   renderRtlView();
-  ['bd-name','bd-empid','bd-desig','bd-region'].forEach(id=>document.getElementById(id).value='');
+  ['bd-name','bd-empid','bd-desig','bd-region','bd-depot'].forEach(id=>document.getElementById(id).value='');
   showToast(name + " added to Buddy Pool");
 });
 
 document.getElementById('download-buddy-template').addEventListener('click', ()=>{
-  const csv = "Name,Employee ID,Designation,Region\nExample Buddy,BUD2299,Territory Sales Officer,Maharashtra\n";
+  const csv = "Name,Employee ID,Designation,Region,Depot Name\nExample Buddy,BUD2299,Territory Sales Officer,Maharashtra,Pune Depot\n";
   downloadCsv(csv, "MARC_Buddy_Pool_Template.csv");
 });
 document.getElementById('buddy-csv-upload').addEventListener('change', async (e)=>{
@@ -1323,8 +1415,8 @@ document.getElementById('buddy-csv-upload').addEventListener('change', async (e)
   const lines = text.trim().split("\n").slice(1);
   let added = 0;
   lines.forEach(line=>{
-    const [name, empId, desig, region] = line.split(",").map(s=>s&&s.trim());
-    if(name && empId){ buddies.push({name, empId, designation:desig||'—', region:region||'—', status:'Active'}); added++; }
+    const [name, empId, desig, region, depotName] = line.split(",").map(s=>s&&s.trim());
+    if(name && empId){ buddies.push({name, empId, designation:desig||'—', region:region||'—', depotName:depotName||'—', status:'Active'}); added++; }
   });
   await saveBuddies(); renderRtlView();
   showToast(`${added} buddy(ies) added to pool`);
@@ -1336,19 +1428,20 @@ document.getElementById('add-intern-btn').addEventListener('click', async ()=>{
   const batchId = document.getElementById('f-batch').value;
   const buddyEmpId = document.getElementById('f-buddy').value;
   const subFunction = document.getElementById('f-subfunction').value;
-  const state = document.getElementById('f-state').value;
+  const region = document.getElementById('f-region').value;
+  const depotName = document.getElementById('f-depot').value.trim();
   if(!name || !empId || !batchId){ showToast("Enter intern name, Employee ID, and select a batch"); return; }
-  interns.push({name, empId, batchId, buddyEmpId, subFunction, state, completion:0, status:"progress",
+  interns.push({name, empId, batchId, buddyEmpId, subFunction, region, depotName:depotName||'—', completion:0, status:"progress",
     buddyAssigned:"No", rtl:"Not Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4),
     fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]});
   await saveInterns();
   renderRtlView();
-  ['f-name','f-empid'].forEach(id=>document.getElementById(id).value='');
+  ['f-name','f-empid','f-depot'].forEach(id=>document.getElementById(id).value='');
   showToast(name + " added to batch");
 });
 
 document.getElementById('download-template').addEventListener('click', ()=>{
-  const csv = "Intern Name,Employee ID,Batch,Buddy Employee ID,Sub-Function,State\nKarishma Iyer,INT1099,WEST-SIB-2026-01,BUD2201,Retail Sales,Maharashtra\n";
+  const csv = "Intern Name,Employee ID,Batch,Buddy Employee ID,Sub-Function,Region,Depot Name\nKarishma Iyer,INT1099,WEST-SIB-2026-01,BUD2201,Retail Sales,Maharashtra,Pune Depot\n";
   downloadCsv(csv, "MARC_Intern_Batch_Template.csv");
 });
 document.getElementById('csv-upload').addEventListener('change', async (e)=>{
@@ -1357,9 +1450,9 @@ document.getElementById('csv-upload').addEventListener('change', async (e)=>{
   const lines = text.trim().split("\n").slice(1);
   let added = 0;
   lines.forEach(line=>{
-    const [name, empId, batchId, buddyEmpId, subFunction, state] = line.split(",").map(s=>s&&s.trim());
+    const [name, empId, batchId, buddyEmpId, subFunction, region, depotName] = line.split(",").map(s=>s&&s.trim());
     if(name && empId){
-      interns.push({name, empId, batchId:batchId||batches[0].id, buddyEmpId:buddyEmpId||'', subFunction:subFunction||'Retail Sales', state:state||'Maharashtra',
+      interns.push({name, empId, batchId:batchId||batches[0].id, buddyEmpId:buddyEmpId||'', subFunction:subFunction||'Retail Sales', region:region||'Maharashtra', depotName:depotName||'—',
         completion:0, status:"progress", buddyAssigned:"No", rtl:"Not Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4),
         fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]});
       added++;
@@ -1449,12 +1542,12 @@ function renderHeadView(){
     btn.addEventListener('click', ()=> renderBatchDrilldown(btn.dataset.batchid, btn.dataset.target));
   });
 
-  const states = [...new Set(interns.map(i=>i.state))];
-  document.getElementById('head-state-table').innerHTML = states.map(st=>{
-    const list = interns.filter(i=>i.state===st);
+  const regions = [...new Set(interns.map(i=>i.region))];
+  document.getElementById('head-state-table').innerHTML = regions.map(rg=>{
+    const list = interns.filter(i=>i.region===rg);
     const completed = list.filter(i=>i.status==='completed').length;
     const delayed = list.filter(i=>i.status==='delayed').length;
-    return `<tr><td>${st}</td><td>${list.length}</td><td>${completed}</td><td>${delayed}</td></tr>`;
+    return `<tr><td>${rg}</td><td>${list.length}</td><td>${completed}</td><td>${delayed}</td></tr>`;
   }).join('') || `<tr><td colspan="4" class="empty">No data yet.</td></tr>`;
 
   document.getElementById('head-buddy-table').innerHTML = buddies.map(bd=>{
