@@ -440,7 +440,10 @@
         <div class="card">
           <label>Select Batch for Closing Report</label>
           <select id="report-batch-select"></select>
-          <div style="margin-top:14px;"><button class="btn" id="generate-report-btn">Generate Closing Report</button></div>
+          <div class="rowflex" style="margin-top:14px;">
+            <button class="btn" id="generate-report-btn">Generate Closing Report</button>
+            <button class="btn ghost" id="download-report-btn">Download Report (Excel)</button>
+          </div>
         </div>
         <div id="closing-report-output"></div>
       </div>
@@ -520,6 +523,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 /* ================= SUPABASE CONNECTION ================= */
 const SUPABASE_URL = "https://hmlsnvdpmphkdkiobggf.supabase.co";
@@ -1546,8 +1550,7 @@ document.getElementById('csv-upload').addEventListener('change', async (e)=>{
   showToast(`${added} intern(s) added from batch upload`);
 });
 
-document.getElementById('generate-report-btn').addEventListener('click', ()=>{
-  const batchId = document.getElementById('report-batch-select').value;
+function computeClosingReportData(batchId){
   const batch = batches.find(b=>b.id===batchId);
   const list = interns.filter(i=>i.batchId===batchId);
   const totalOjt = 6, totalStint = 4;
@@ -1561,41 +1564,103 @@ document.getElementById('generate-report-btn').addEventListener('click', ()=>{
   const buddyRatingScores = list.map(i=>buddyFbAvg(i)).filter(v=>v!==null);
   const avgBuddyRating = buddyRatingScores.length ? (buddyRatingScores.reduce((a,c)=>a+c,0)/buddyRatingScores.length).toFixed(1) : "—";
   const atRisk = list.filter(i=>i.status==='delayed'||i.status==='failed');
+  const avgOverall = (()=>{ const v = list.map(i=>overallBlendedScore(i)).filter(x=>x!==null); return v.length ? (v.reduce((a,c)=>a+c,0)/v.length).toFixed(1) : "—"; })();
 
-  const rows = list.map(i=>{
+  const internRows = list.map(i=>{
     const ojtDone = Object.values(i.ojt).filter(v=>v==='Completed').length;
     const stintDone = Object.values(i.stint).filter(v=>v==='Completed').length;
     const overall = overallBlendedScore(i);
-    const rec = (ojtDone===totalOjt && stintDone===totalStint) ? '<span class="swatch s-completed">Certified</span>'
-      : (ojtDone>=4) ? '<span class="swatch s-progress">Extend</span>' : '<span class="swatch s-delayed">Not Certified</span>';
-    return `<tr><td>${i.name}</td><td>${i.subFunction}</td><td>${ojtDone}/${totalOjt}</td><td>${stintDone}/${totalStint}</td><td>${overall!==null?overall.toFixed(1)+'/5':'—'}</td><td>${rec}</td></tr>`;
+    const buddy = buddies.find(b=>b.empId===i.buddyEmpId);
+    const rec = (ojtDone===totalOjt && stintDone===totalStint) ? 'Certified'
+      : (ojtDone>=4) ? 'Extend' : 'Not Certified';
+    return {name:i.name, empId:i.empId, subFunction:i.subFunction, region:i.region||'—', depotName:i.depotName||'—',
+      buddy: buddy?buddy.name:'—', ojtDone, totalOjt, stintDone, totalStint,
+      overall: overall!==null?overall.toFixed(1):'—', status:STATUS_LABEL[i.status]||i.status, recommendation:rec};
+  });
+
+  return {batch, list, totalOjt, totalStint, avgOjt, avgStint, rtlDone, avgFbRtl, avgFbBuddy, avgBuddyRating, avgOverall, atRisk, internRows};
+}
+
+document.getElementById('generate-report-btn').addEventListener('click', ()=>{
+  const batchId = document.getElementById('report-batch-select').value;
+  const d = computeClosingReportData(batchId);
+
+  const rowsHtml = d.internRows.map(r=>{
+    const recClass = r.recommendation==='Certified' ? 's-completed' : (r.recommendation==='Extend' ? 's-progress' : 's-delayed');
+    return `<tr><td>${r.name}</td><td>${r.subFunction}</td><td>${r.ojtDone}/${r.totalOjt}</td><td>${r.stintDone}/${r.totalStint}</td><td>${r.overall!=='—'?r.overall+'/5':'—'}</td><td><span class="swatch ${recClass}">${r.recommendation}</span></td></tr>`;
   }).join('');
 
-  const avgOverall = (()=>{ const v = list.map(i=>overallBlendedScore(i)).filter(x=>x!==null); return v.length ? (v.reduce((a,c)=>a+c,0)/v.length).toFixed(1) : "—"; })();
-
   document.getElementById('closing-report-output').innerHTML = `
-    <section><h3>Closing Report — ${batch.name}</h3>
+    <section><h3>Closing Report — ${d.batch.name}</h3>
     <div class="grid cols-4">
-      <div class="stat"><div class="num">${list.length}</div><div class="lbl">Total Interns</div></div>
-      <div class="stat"><div class="num">${avgOjt}%</div><div class="lbl">Avg OJT Completion</div></div>
-      <div class="stat"><div class="num">${avgStint}%</div><div class="lbl">Avg Stint Task Completion</div></div>
-      <div class="stat"><div class="num">${rtlDone}/${list.length}</div><div class="lbl">RTL Induction Done</div></div>
+      <div class="stat"><div class="num">${d.list.length}</div><div class="lbl">Total Interns</div></div>
+      <div class="stat"><div class="num">${d.avgOjt}%</div><div class="lbl">Avg OJT Completion</div></div>
+      <div class="stat"><div class="num">${d.avgStint}%</div><div class="lbl">Avg Stint Task Completion</div></div>
+      <div class="stat"><div class="num">${d.rtlDone}/${d.list.length}</div><div class="lbl">RTL Induction Done</div></div>
     </div>
     <div class="grid cols-4" style="margin-top:14px;">
-      <div class="stat"><div class="num">${avgFbRtl}</div><div class="lbl">Avg RTL Induction Feedback (/5)</div></div>
-      <div class="stat"><div class="num">${avgFbBuddy}</div><div class="lbl">Avg Buddy Feedback (/5)</div></div>
-      <div class="stat"><div class="num">${avgBuddyRating}</div><div class="lbl">Avg Buddy Rating of Interns (/5)</div></div>
-      <div class="stat" style="border-color:var(--gold);"><div class="num" style="color:var(--gold);">${avgOverall}</div><div class="lbl">Avg Overall Blended Score</div></div>
+      <div class="stat"><div class="num">${d.avgFbRtl}</div><div class="lbl">Avg RTL Induction Feedback (/5)</div></div>
+      <div class="stat"><div class="num">${d.avgFbBuddy}</div><div class="lbl">Avg Buddy Feedback (/5)</div></div>
+      <div class="stat"><div class="num">${d.avgBuddyRating}</div><div class="lbl">Avg Buddy Rating of Interns (/5)</div></div>
+      <div class="stat" style="border-color:var(--gold);"><div class="num" style="color:var(--gold);">${d.avgOverall}</div><div class="lbl">Avg Overall Blended Score</div></div>
     </div>
     </section>
     <section><h3>Per-Intern Recommendation</h3>
     <div class="card" style="padding:0;"><table><thead><tr><th>Intern</th><th>Sub-Function</th><th>OJT</th><th>Stint Tasks</th><th>Overall Score</th><th>Recommendation</th></tr></thead>
-    <tbody>${rows || '<tr><td colspan="6" class="empty">No interns in this batch.</td></tr>'}</tbody></table></div>
+    <tbody>${rowsHtml || '<tr><td colspan="6" class="empty">No interns in this batch.</td></tr>'}</tbody></table></div>
     </section>
     <section><h3>At-Risk / Delayed Interns</h3>
     <div class="card" style="padding:0;"><table><thead><tr><th>Intern</th><th>Status</th></tr></thead>
-    <tbody>${atRisk.map(i=>`<tr><td>${i.name}</td><td>${swatch(i.status)}</td></tr>`).join('') || '<tr><td colspan="2" class="empty">None flagged.</td></tr>'}</tbody></table></div>
+    <tbody>${d.atRisk.map(i=>`<tr><td>${i.name}</td><td>${swatch(i.status)}</td></tr>`).join('') || '<tr><td colspan="2" class="empty">None flagged.</td></tr>'}</tbody></table></div>
     </section>`;
+});
+
+document.getElementById('download-report-btn').addEventListener('click', ()=>{
+  const batchId = document.getElementById('report-batch-select').value;
+  const d = computeClosingReportData(batchId);
+
+  const wb = XLSX.utils.book_new();
+
+  const summaryData = [
+    ["MARC Closing Report", d.batch.name],
+    ["Batch Type", d.batch.type],
+    ["RTL", d.batch.rtl],
+    ["Start Date", d.batch.start],
+    ["Close Date", d.batch.close],
+    ["Status", d.batch.status],
+    [],
+    ["Metric", "Value"],
+    ["Total Interns", d.list.length],
+    ["Avg OJT Completion", d.avgOjt + "%"],
+    ["Avg Stint Task Completion", d.avgStint + "%"],
+    ["RTL Induction Done", d.rtlDone + " / " + d.list.length],
+    ["Avg RTL Induction Feedback (/5)", d.avgFbRtl],
+    ["Avg Buddy Feedback (/5)", d.avgFbBuddy],
+    ["Avg Buddy Rating of Interns (/5)", d.avgBuddyRating],
+    ["Avg Overall Blended Score (/5)", d.avgOverall]
+  ];
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+  wsSummary['!cols'] = [{wch:32},{wch:22}];
+  XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
+
+  const internSheetData = d.internRows.map(r=>({
+    "Intern Name": r.name, "Employee ID": r.empId, "Sub-Function": r.subFunction,
+    "Region": r.region, "Depot Name": r.depotName, "Buddy": r.buddy,
+    "OJT Completed": `${r.ojtDone}/${r.totalOjt}`, "Stint Tasks Completed": `${r.stintDone}/${r.totalStint}`,
+    "Overall Score": r.overall, "Current Status": r.status, "Recommendation": r.recommendation
+  }));
+  const wsInterns = XLSX.utils.json_to_sheet(internSheetData);
+  wsInterns['!cols'] = [{wch:20},{wch:14},{wch:20},{wch:16},{wch:16},{wch:18},{wch:14},{wch:16},{wch:12},{wch:16},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, wsInterns, "Per-Intern Recommendation");
+
+  const atRiskData = d.atRisk.map(i=>({"Intern Name": i.name, "Employee ID": i.empId, "Status": STATUS_LABEL[i.status]||i.status}));
+  const wsRisk = XLSX.utils.json_to_sheet(atRiskData.length ? atRiskData : [{"Intern Name":"None flagged","Employee ID":"","Status":""}]);
+  wsRisk['!cols'] = [{wch:20},{wch:14},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, wsRisk, "At-Risk Interns");
+
+  const safeName = d.batch.name.replace(/[^a-zA-Z0-9-_]/g,'_');
+  XLSX.writeFile(wb, `MARC_Closing_Report_${safeName}.xlsx`);
+  showToast("Excel report downloaded");
 });
 
 function downloadCsv(content, filename){
