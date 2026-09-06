@@ -476,6 +476,9 @@
             </div>
           </div>
         </div>
+        <section><h3>Buddy Performance <span class="helptext" style="display:inline;">(across all batches)</span></h3>
+          <div class="card" style="padding:0;"><table><thead><tr><th>Buddy</th><th>Region</th><th>Interns Guided</th><th>Avg Intern Completion</th><th>Buddy Effectiveness (feedback received)</th><th>Buddy's Avg Rating Given</th></tr></thead><tbody id="rtl-buddy-perf-table"></tbody></table></div>
+        </section>
       </div>
 
       <div class="subview" id="rtl-interns">
@@ -540,7 +543,7 @@
         <div class="card" style="padding:0;"><table><thead><tr><th>Region</th><th>Total</th><th>Completed</th><th>Delayed</th></tr></thead><tbody id="head-state-table"></tbody></table></div>
       </section>
       <section><h3>Buddy Performance <span class="helptext" style="display:inline;">(across visible batches)</span></h3>
-        <div class="card" style="padding:0;"><table><thead><tr><th>Buddy</th><th>Region</th><th>Interns Mentored</th><th>Avg Intern Completion</th><th>Buddy Effectiveness (feedback received)</th><th>Buddy's Avg Rating Given</th></tr></thead><tbody id="head-buddy-table"></tbody></table></div>
+        <div class="card" style="padding:0;"><table><thead><tr><th>Buddy</th><th>Region</th><th>Interns Guided</th><th>Avg Intern Completion</th><th>Buddy Effectiveness (feedback received)</th><th>Buddy's Avg Rating Given</th></tr></thead><tbody id="head-buddy-table"></tbody></table></div>
       </section>
     </div>
 
@@ -745,7 +748,7 @@ const FB_BUDDY_QUAL = [
 ];
 const FB_BUDDY_QUANT = [
   {text:"% of OJT sessions planned vs. completed", options:[{l:"<85%",v:1},{l:"85–90%",v:2},{l:"90–95%",v:3},{l:"95–100%",v:4},{l:"100%",v:5}]},
-  {text:"No. of mentoring sessions done", options:[{l:"<1 session",v:0},{l:"1 session",v:4},{l:"2 sessions",v:5}]},
+  {text:"No. of guidance sessions done", options:[{l:"<1 session",v:0},{l:"1 session",v:4},{l:"2 sessions",v:5}]},
   {text:"No. of joint field visits", options:[{l:"1 visit",v:3},{l:"2 visits",v:4},{l:"3 visits",v:5}]}
 ];
 
@@ -1633,6 +1636,17 @@ function renderRtlView(){
     btn.addEventListener('click', ()=> openBuddyEditModal(parseInt(btn.dataset.idx)));
   });
 
+  document.getElementById('rtl-buddy-perf-table').innerHTML = buddies.map(bd=>{
+    const mine = interns.filter(i=>i.buddyEmpId===bd.empId);
+    if(!mine.length) return `<tr><td>${bd.name}</td><td>${bd.region}</td><td>0</td><td>—</td><td>—</td><td>—</td></tr>`;
+    const avgCompletion = Math.round(mine.reduce((a,i)=>a+i.completion,0)/mine.length);
+    const receivedScores = mine.filter(i=>i.fbBuddy.submitted).flatMap(i=>[...Object.values(i.fbBuddy.qual),...Object.values(i.fbBuddy.quant)].filter(v=>v!==null));
+    const avgReceived = receivedScores.length ? (receivedScores.reduce((a,c)=>a+c,0)/receivedScores.length).toFixed(1)+'/5' : 'Pending';
+    const givenScores = mine.map(i=>buddyFbAvg(i)).filter(v=>v!==null);
+    const avgGiven = givenScores.length ? (givenScores.reduce((a,c)=>a+c,0)/givenScores.length).toFixed(1)+'/5' : 'Pending';
+    return `<tr><td>${bd.name}</td><td>${bd.region}</td><td>${mine.length}</td><td>${avgCompletion}%</td><td>${avgReceived}</td><td>${avgGiven}</td></tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty">No buddies in the pool yet.</td></tr>`;
+
   document.getElementById('rtl-intern-table').innerHTML = interns.map(i=>{
     const idx = interns.indexOf(i);
     const batch = batches.find(b=>b.id===i.batchId);
@@ -1894,7 +1908,7 @@ document.getElementById('delete-buddy-btn').addEventListener('click', async ()=>
   if(editBuddyFocusIdx===null) return;
   const buddy = buddies[editBuddyFocusIdx];
   const assignedCount = interns.filter(i=>i.buddyEmpId===buddy.empId).length;
-  const warnExtra = assignedCount>0 ? ` They currently mentor ${assignedCount} intern(s), who will show as "No Buddy Assigned" afterward.` : '';
+  const warnExtra = assignedCount>0 ? ` They currently guide ${assignedCount} intern(s), who will show as "No Buddy Assigned" afterward.` : '';
   if(!confirm(`Remove ${buddy.name} (${buddy.empId}) from the Buddy Pool?${warnExtra} This cannot be undone.`)) return;
   try{
     const {error} = await sb.from('buddies').delete().eq('emp_id', buddy.empId);
