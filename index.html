@@ -28,6 +28,22 @@
   .entry-links{display:flex;justify-content:space-between;margin-top:20px;}
   .entry-links a{font-size:12px;color:var(--ink-soft);cursor:pointer;text-decoration:underline;}
   .back-link{font-size:12.5px;color:var(--ink-soft);cursor:pointer;text-decoration:underline;display:inline-block;margin-bottom:14px;}
+  .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px;}
+  .role-btn{
+    font-family:inherit;font-size:14px;font-weight:600;padding:16px 10px;border-radius:10px;
+    border:1px solid var(--line);background:#fff;color:var(--navy-2);cursor:pointer;
+  }
+  .role-btn:hover{border-color:var(--gold);background:#FFFCF7;}
+  .highlight-box{background:#FFF8E8;border:1px solid var(--gold);border-radius:9px;padding:12px 14px;font-size:13px;color:#6B4E1E;margin-top:10px;}
+  .highlight-box b{color:#8A6423;}
+  .score-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;}
+  .day-badge{font-size:10.5px;color:var(--ink-soft);font-weight:600;background:#F1F1EF;padding:2px 8px;border-radius:10px;margin-left:8px;}
+  .day-badge.overdue{background:#FBEAE8;color:#B24A3C;}
+  .item-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);gap:10px;}
+  .item-row:last-child{border-bottom:none;}
+  .item-row span{font-size:12px;color:var(--ink-soft);flex:1;}
+  .item-row select{width:130px;flex-shrink:0;}
+  .gate-note{font-size:11.5px;color:var(--swatch-progress);margin-top:6px;font-style:italic;}
 
   /* ---------- Header ---------- */
   header.top{background:var(--navy);color:#fff;padding:22px 28px 0;}
@@ -183,29 +199,43 @@
 
 <div id="db-error-panel" class="hidden" style="position:fixed;top:0;left:0;right:0;background:#7A2E2E;color:#fff;padding:10px 16px;font-size:12.5px;font-family:monospace;z-index:200;max-height:160px;overflow-y:auto;"></div>
 
-<!-- ============ ENTRY SCREEN ============ -->
-<div id="screen-entry" class="center-screen">
-  <div class="entry-card">
+<!-- ============ ROLE SELECT SCREEN ============ -->
+<div id="screen-role-select" class="center-screen">
+  <div class="entry-card" style="max-width:460px;">
     <div class="entry-logo"></div>
     <h1>MARC</h1>
     <p class="tag">Berger Paints — Field Sales Intern Program</p>
+    <div class="role-grid">
+      <button class="role-btn" data-role="intern">Intern</button>
+      <button class="role-btn" data-role="buddy">Buddy</button>
+      <button class="role-btn" data-role="rtl">RTL / Admin</button>
+      <button class="role-btn" data-role="gm">GM</button>
+      <button class="role-btn" data-role="tch">TCH</button>
+      <button class="role-btn" data-role="coordinator">Coordinator</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ INTERN / BUDDY ID ENTRY SCREEN ============ -->
+<div id="screen-id-entry" class="center-screen hidden">
+  <div class="entry-card">
+    <span class="back-link" id="id-entry-back">← Back to role selection</span>
+    <div class="entry-logo"></div>
+    <h1 id="id-entry-title">Intern</h1>
+    <p class="tag" id="id-entry-tag">Batch &amp; ID login</p>
     <label>Select Batch</label>
     <select id="entry-batch"></select>
-    <label>Employee ID</label>
-    <input type="text" id="entry-empid" placeholder="e.g. INT1042 or BUD2201">
+    <label id="id-entry-label">Trainee ID</label>
+    <input type="text" id="entry-empid" placeholder="e.g. INT1042">
     <button class="btn" id="entry-submit">Enter</button>
     <div class="entry-error" id="entry-error"></div>
-    <div class="entry-links">
-      <a id="link-rtl">RTL / Admin Access</a>
-      <a id="link-head">Regional Head Dashboard</a>
-    </div>
   </div>
 </div>
 
 <!-- ============ RTL PASSWORD SCREEN ============ -->
 <div id="screen-rtl-auth" class="center-screen hidden">
   <div class="entry-card">
-    <span class="back-link" id="rtl-auth-back">← Back to entry</span>
+    <span class="back-link" id="rtl-auth-back">← Back to role selection</span>
     <div class="entry-logo"></div>
     <h1>RTL / Admin</h1>
     <p class="tag">Master access — password protected</p>
@@ -216,17 +246,56 @@
   </div>
 </div>
 
+<!-- ============ GM REGION SELECT SCREEN ============ -->
+<div id="screen-gm-region" class="center-screen hidden">
+  <div class="entry-card">
+    <span class="back-link" id="gm-region-back">← Back to role selection</span>
+    <div class="entry-logo"></div>
+    <h1>GM</h1>
+    <p class="tag">Select your region</p>
+    <div class="role-grid" id="gm-region-buttons"></div>
+  </div>
+</div>
+
 <!-- ============ GM / HEAD PASSWORD SCREEN ============ -->
 <div id="screen-head-auth" class="center-screen hidden">
   <div class="entry-card">
-    <span class="back-link" id="head-auth-back">← Back to entry</span>
+    <span class="back-link" id="head-auth-back">← Back to region selection</span>
     <div class="entry-logo"></div>
-    <h1>Regional Head</h1>
-    <p class="tag">Read-only dashboard — password protected</p>
+    <h1 id="gm-auth-title">GM</h1>
+    <p class="tag" id="gm-auth-tag">Read-only dashboard — password protected</p>
     <label>Password</label>
     <input type="password" id="head-password" placeholder="Enter GM dashboard password">
     <button class="btn" id="head-submit">Unlock</button>
     <div class="entry-error" id="head-error"></div>
+  </div>
+</div>
+
+<!-- ============ TCH PASSWORD SCREEN ============ -->
+<div id="screen-tch-auth" class="center-screen hidden">
+  <div class="entry-card">
+    <span class="back-link" id="tch-auth-back">← Back to role selection</span>
+    <div class="entry-logo"></div>
+    <h1>TCH</h1>
+    <p class="tag">Talent Capability Head — central visibility, all regions</p>
+    <label>Password</label>
+    <input type="password" id="tch-password" placeholder="Enter TCH password">
+    <button class="btn" id="tch-submit">Unlock</button>
+    <div class="entry-error" id="tch-error"></div>
+  </div>
+</div>
+
+<!-- ============ COORDINATOR PASSWORD SCREEN ============ -->
+<div id="screen-coordinator-auth" class="center-screen hidden">
+  <div class="entry-card">
+    <span class="back-link" id="coordinator-auth-back">← Back to role selection</span>
+    <div class="entry-logo"></div>
+    <h1>Coordinator</h1>
+    <p class="tag">MARC Assessment &amp; GEN AI score updates only</p>
+    <label>Password</label>
+    <input type="password" id="coordinator-password" placeholder="Enter coordinator password">
+    <button class="btn" id="coordinator-submit">Unlock</button>
+    <div class="entry-error" id="coordinator-error"></div>
   </div>
 </div>
 
@@ -254,28 +323,37 @@
 
       <div class="card"><h3 style="margin-top:0;">Your Journey</h3><div class="flow" id="intern-flow"></div></div>
 
-      <section><h3>Buddy Assignment</h3>
+      <section><h3>Classroom Training</h3>
         <div class="card inline-toggle">
-          <span style="font-size:13.5px;">Has your Buddy been assigned?</span>
-          <select id="intern-buddy-assigned" class="assign-no"><option value="No">No</option><option value="Yes">Yes</option></select>
-        </div>
-      </section>
-
-      <section><h3>RTL Induction</h3>
-        <div class="card inline-toggle">
-          <span style="font-size:13.5px;">Mark your RTL Induction status</span>
+          <span style="font-size:13.5px;">Mark your Classroom Training status</span>
           <select id="intern-rtl" class="status-select st-notstarted"><option value="Not Completed">Not Completed</option><option value="Completed">Completed</option></select>
         </div>
       </section>
 
+      <section><h3>Buddy Assignment</h3>
+        <div class="card">
+          <div class="inline-toggle">
+            <span style="font-size:13.5px;">Has your Buddy been assigned?</span>
+            <select id="intern-buddy-assigned" class="assign-no"><option value="No">No</option><option value="Yes">Yes</option></select>
+          </div>
+          <div id="intern-buddy-name-box" class="hidden" style="margin-top:14px;">
+            <label style="margin-top:0;">Buddy's Name</label>
+            <input type="text" id="intern-buddy-name" placeholder="Enter your Buddy's name">
+          </div>
+        </div>
+      </section>
+
       <section><h3>On-the-Job Training (OJT) <span class="badge">6 Activities</span></h3>
-        <p class="sub" style="margin-top:-4px;">Review each activity, learn from your Buddy in the field, and update your status honestly.</p>
+        <p class="sub" style="margin-top:-4px;">Each activity is scheduled day-wise from your batch start date. Mark line items as you complete them — an activity unlocks for "Completed" once 70% of its items are done.</p>
         <div id="intern-ojt-list"></div>
       </section>
 
       <section><h3>Individual Stint Task <span class="badge" id="intern-stint-badge"></span></h3>
         <p class="sub" style="margin-top:-4px;" id="intern-stint-note"></p>
         <div id="intern-stint-list"></div>
+        <label style="margin-top:16px;">Overachievement / Additional Highlights (optional)</label>
+        <textarea id="intern-stint-highlights" rows="3" placeholder="Mention here if you've exceeded any target — this is shown to your GM and TCH."></textarea>
+        <div class="rowflex" style="margin-top:8px;"><button class="btn ghost small" id="save-stint-highlights-btn">Save Highlights</button></div>
       </section>
 
       <section><h3>Feedback</h3>
@@ -414,13 +492,13 @@
               <option>Business Development</option><option>Prolinks</option><option>RPO</option>
             </select>
             <label>Region</label>
-            <select id="f-region"><option>Maharashtra</option><option>Goa</option><option>Gujarat</option><option>Madhya Pradesh</option></select>
+            <select id="f-region"></select>
             <label>Depot Name</label><input type="text" id="f-depot" placeholder="e.g. Pune Depot">
             <div style="margin-top:18px;"><button class="btn" id="add-intern-btn">Add Intern</button></div>
           </div>
           <div class="card">
             <h3 style="margin-top:0;">Bulk Upload — Create Batch Roster</h3>
-            <p class="helptext">Columns: Intern Name, Employee ID, Batch, Buddy Employee ID, Sub-Function, Region, Depot Name</p>
+            <p class="helptext">Columns: Intern Name, Employee ID, Batch, Buddy Employee ID, Sub-Function, Region, Depot Name<br>Valid Region codes — NORTH & CENTRAL: N1, N2, C1, C2, C3 · WEST: W1, W2, C4 · EAST: E1, E2 · SOUTH: S1, S2, S3</p>
             <button class="btn ghost small" id="download-template">Download CSV Template</button>
             <label>Upload Completed Template</label>
             <input type="file" id="csv-upload" accept=".csv">
@@ -451,18 +529,46 @@
 
     <!-- ============ REGIONAL HEAD VIEW ============ -->
     <div class="view" id="view-head">
-      <h2 class="pagehead">Regional Dashboard</h2>
-      <p class="sub">Read-only overview across all batches &nbsp;·&nbsp; West Region</p>
+      <h2 class="pagehead" id="head-pagehead">Regional Dashboard</h2>
+      <p class="sub" id="head-subhead">Read-only overview across all batches</p>
       <div class="grid cols-4" id="head-stats"></div>
       <section><h3>Batch-wise Overview <span class="helptext" style="display:inline;">(click a batch name for an at-a-glance report)</span></h3>
         <div class="card" style="padding:0;"><table><thead><tr><th>Batch</th><th>Type</th><th>Status</th><th>Total</th><th>Completed</th><th>Delayed</th></tr></thead><tbody id="head-batch-table"></tbody></table></div>
         <div class="drilldown" id="head-batch-drilldown"></div>
       </section>
-      <section><h3>Region-wise Breakdown</h3>
+      <section id="head-region-section"><h3>Region-wise Breakdown</h3>
         <div class="card" style="padding:0;"><table><thead><tr><th>Region</th><th>Total</th><th>Completed</th><th>Delayed</th></tr></thead><tbody id="head-state-table"></tbody></table></div>
       </section>
-      <section><h3>Buddy Performance <span class="helptext" style="display:inline;">(across all batches)</span></h3>
+      <section><h3>Buddy Performance <span class="helptext" style="display:inline;">(across visible batches)</span></h3>
         <div class="card" style="padding:0;"><table><thead><tr><th>Buddy</th><th>Region</th><th>Interns Mentored</th><th>Avg Intern Completion</th><th>Buddy Effectiveness (feedback received)</th><th>Buddy's Avg Rating Given</th></tr></thead><tbody id="head-buddy-table"></tbody></table></div>
+      </section>
+    </div>
+
+    <!-- ============ COORDINATOR VIEW ============ -->
+    <div class="view" id="view-coordinator">
+      <h2 class="pagehead">Coordinator</h2>
+      <p class="sub">Update MARC Assessment scores and GEN AI Update scores for every intern.</p>
+      <div class="two-col">
+        <div class="card">
+          <h3 style="margin-top:0;">Bulk Upload Scores</h3>
+          <p class="helptext">Columns: Employee ID, Batch, MARC Assessment Score (0-100), GEN AI Score (0-100)</p>
+          <button class="btn ghost small" id="download-coordinator-template">Download CSV Template</button>
+          <label>Upload Completed Template</label>
+          <input type="file" id="coordinator-csv-upload" accept=".csv">
+          <p class="helptext" id="coordinator-csv-status"></p>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0;">Filter</h3>
+          <label>Batch</label>
+          <select id="coordinator-batch-filter"></select>
+        </div>
+      </div>
+      <section>
+        <h3>Update Scores Per Intern</h3>
+        <div class="card" style="padding:0;">
+          <table><thead><tr><th>Intern</th><th>Emp ID</th><th>Batch</th><th>MARC Assessment Score</th><th>GEN AI Score</th><th></th></tr></thead>
+          <tbody id="coordinator-intern-table"></tbody></table>
+        </div>
       </section>
     </div>
   </main>
@@ -493,6 +599,10 @@
     <input type="text" id="edit-region" placeholder="e.g. Maharashtra">
     <label>Depot Name</label>
     <input type="text" id="edit-depot" placeholder="e.g. Pune Depot">
+    <div class="rowflex" style="margin-top:16px;align-items:center;">
+      <input type="checkbox" id="edit-ojt-unlock" style="width:auto;">
+      <label style="margin:0;" for="edit-ojt-unlock">Unlock OJT updates for this intern (bypasses day schedule &amp; 70% gate — use if they fell behind for a valid reason)</label>
+    </div>
     <div class="rowflex" style="margin-top:22px;justify-content:space-between;">
       <button class="btn" id="save-intern-edit-btn">Save Changes</button>
       <button class="btn ghost" id="delete-intern-btn" style="border-color:#B24A3C;color:#B24A3C;">Remove Intern from Batch</button>
@@ -522,6 +632,13 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="score-breakdown-overlay">
+  <div class="modal-box" style="max-width:480px;">
+    <button class="modal-close" id="score-breakdown-close">✕</button>
+    <div id="score-breakdown-body"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
@@ -532,7 +649,27 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ================= CONSTANTS ================= */
 const RTL_PASSWORD = "MARC@2026";
-const GM_PASSWORD = "MARC-GM@2026";
+const TCH_PASSWORD = "TCH@2026";
+const COORDINATOR_PASSWORD = "COORD@2026";
+
+/* GM operates at the ZONE level. Each zone covers several states — the GM sees all states within their zone. */
+const ZONES = {
+  "NORTH & CENTRAL": ["N1","N2","C1","C2","C3"],
+  "WEST": ["W1","W2","C4"],
+  "EAST": ["E1","E2"],
+  "SOUTH": ["S1","S2","S3"]
+};
+const ZONE_NAMES = Object.keys(ZONES);
+const ZONE_PASSWORDS = {
+  "NORTH & CENTRAL": "GM-NC@2026",
+  "WEST": "GM-WEST@2026",
+  "EAST": "GM-EAST@2026",
+  "SOUTH": "GM-SOUTH@2026"
+};
+const ALL_STATES = Object.values(ZONES).flat();
+function zoneOfState(state){
+  return ZONE_NAMES.find(z => ZONES[z].includes(state)) || null;
+}
 
 const OJT_ACTIVITIES = [
   {title:"Depot Operation & Commercial Processes", points:[
@@ -604,7 +741,7 @@ const FB_BUDDY_QUAL = [
   "My Buddy gave me practical, hands-on exposure rather than just talking me through it",
   "My Buddy gave me honest, constructive feedback on my performance",
   "My Buddy helped me build confidence in dealing with dealers/contractors directly",
-  "Overall rating of my Buddy as a mentor during OJT"
+  "Overall rating of my Buddy during OJT"
 ];
 const FB_BUDDY_QUANT = [
   {text:"% of OJT sessions planned vs. completed", options:[{l:"<85%",v:1},{l:"85–90%",v:2},{l:"90–95%",v:3},{l:"95–100%",v:4},{l:"100%",v:5}]},
@@ -620,6 +757,46 @@ function computeCloseDate(startDate, type){
 }
 function defaultStatusMap(n){ const o={}; for(let i=0;i<n;i++) o[i]="Not Completed"; return o; }
 function defaultFbMap(qualN, quantN){ const o={qual:{}, quant:{}, submitted:false}; for(let i=0;i<qualN;i++) o.qual[i]=null; for(let i=0;i<quantN;i++) o.quant[i]=null; return o; }
+
+function defaultOjtState(){
+  const o = {};
+  OJT_ACTIVITIES.forEach((a,i)=>{
+    const items = {};
+    a.points.forEach((p,j)=>{ items[j] = "Not Completed"; });
+    o[i] = {items, status:"Not Completed", remark:""};
+  });
+  return o;
+}
+function ojtActivityDate(batch, idx){
+  if(!batch || !batch.start) return null;
+  const d = new Date(batch.start);
+  d.setDate(d.getDate()+idx);
+  return d;
+}
+function formatDate(d){
+  if(!d) return '—';
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+function ojtItemCompletedCount(activityState){
+  return Object.values(activityState.items).filter(v=>v==='Completed').length;
+}
+function ojtCompletionPct(intern){
+  let totalItems=0, completedItems=0;
+  OJT_ACTIVITIES.forEach((a,i)=>{
+    const st = intern.ojt[i];
+    totalItems += a.points.length;
+    completedItems += ojtItemCompletedCount(st);
+  });
+  return totalItems ? Math.round(completedItems/totalItems*100) : 0;
+}
+function ojtActivitiesDoneCount(intern){
+  return Object.values(intern.ojt).filter(st=>st.status==='Completed').length;
+}
+function stintCompletionPct(intern){
+  const total = Object.keys(intern.stint).length;
+  const completed = Object.values(intern.stint).filter(v=>v==='Completed').length;
+  return total ? Math.round(completed/total*100) : 0;
+}
 
 const BUDDY_COMMON_PARAMS = [
   "Learning Attitude & Eagerness",
@@ -648,9 +825,25 @@ function fbBuddyAvgFromIntern(intern){
   const vals = [...Object.values(intern.fbBuddy.qual), ...Object.values(intern.fbBuddy.quant)].filter(v=>v!==null);
   return vals.length ? vals.reduce((a,c)=>a+c,0)/vals.length : null;
 }
+/* Blended score: cumulative (averaged) across OJT completion %, MARC Assessment score,
+   GEN AI score, Buddy's rating of the intern (converted to %), and Individual Stint completion %.
+   Expressed as a single 0-100 percentage. Components not yet available are skipped, not zeroed. */
+function scoreComponents(intern){
+  const bf = buddyFbAvg(intern); // 0-5 or null
+  return {
+    ojtPct: ojtCompletionPct(intern),
+    stintPct: stintCompletionPct(intern),
+    marcScore: (intern.marcScore!==null && intern.marcScore!==undefined) ? intern.marcScore : null,
+    genAiScore: (intern.genAiScore!==null && intern.genAiScore!==undefined) ? intern.genAiScore : null,
+    buddyRatingPct: bf!==null ? Math.round(bf/5*100) : null,
+    buddyRatingRaw: bf
+  };
+}
 function overallBlendedScore(intern){
-  const parts = [fbRtlAvg(intern), fbBuddyAvgFromIntern(intern), buddyFbAvg(intern)].filter(v=>v!==null);
-  return parts.length ? (parts.reduce((a,c)=>a+c,0)/parts.length) : null;
+  const c = scoreComponents(intern);
+  const parts = [c.ojtPct, c.stintPct, c.marcScore, c.genAiScore, c.buddyRatingPct].filter(v=>v!==null && v!==undefined);
+  if(!parts.length) return null;
+  return Math.round(parts.reduce((a,b)=>a+b,0)/parts.length);
 }
 
 const SEED_BATCHES = [
@@ -658,15 +851,15 @@ const SEED_BATCHES = [
   {id:"WEST-OTR-2026-01", name:"WEST-OTR-2026-01", type:"Off-Role to On-Role", start:"2026-04-01", close:computeCloseDate("2026-04-01","Off-Role to On-Role"), rtl:"Dummy 1", status:"Closed"}
 ];
 const SEED_BUDDIES = [
-  {name:"Sanjay Kulkarni", empId:"BUD2201", designation:"Area Sales Manager", region:"Maharashtra", depotName:"Pune Depot", status:"Active"},
-  {name:"Meera Joshi", empId:"BUD2202", designation:"Territory Sales Officer", region:"Gujarat", depotName:"Ahmedabad Depot", status:"Active"},
-  {name:"Vikram Rao", empId:"BUD2203", designation:"Area Sales Manager", region:"Madhya Pradesh", depotName:"Indore Depot", status:"Active"}
+  {name:"Sanjay Kulkarni", empId:"BUD2201", designation:"Area Sales Manager", region:"W1", depotName:"Pune Depot", status:"Active"},
+  {name:"Meera Joshi", empId:"BUD2202", designation:"Territory Sales Officer", region:"W2", depotName:"Ahmedabad Depot", status:"Active"},
+  {name:"Vikram Rao", empId:"BUD2203", designation:"Area Sales Manager", region:"C4", depotName:"Indore Depot", status:"Active"}
 ];
 const SEED_INTERNS = [
-  {name:"Rahul Deshmukh", empId:"INT1001", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2201", subFunction:"Retail Sales", region:"Maharashtra", depotName:"Pune Depot", completion:55, status:"progress", buddyAssigned:"Yes", rtl:"Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4), fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[{text:"Buddy Sanjay Kulkarni assigned to you", ts:Date.now()-6*86400000}]},
-  {name:"Neha Patil", empId:"INT1002", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2201", subFunction:"Urban Market", region:"Goa", depotName:"Panaji Depot", completion:30, status:"progress", buddyAssigned:"Yes", rtl:"Not Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4), fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]},
-  {name:"Karan Mehta", empId:"INT1003", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2202", subFunction:"Business Development", region:"Gujarat", depotName:"Ahmedabad Depot", completion:15, status:"progress", buddyAssigned:"No", rtl:"Not Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4), fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]},
-  {name:"Devika Rao", empId:"INT0901", batchId:"WEST-OTR-2026-01", buddyEmpId:"BUD2203", subFunction:"Distribution", region:"Madhya Pradesh", depotName:"Indore Depot", completion:100, status:"completed", buddyAssigned:"Yes", rtl:"Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4), fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]}
+  {name:"Rahul Deshmukh", empId:"INT1001", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2201", buddyNameNote:"Sanjay Kulkarni", subFunction:"Retail Sales", region:"W1", depotName:"Pune Depot", completion:55, status:"progress", buddyAssigned:"Yes", rtl:"Completed", ojt:defaultOjtState(), stint:defaultStatusMap(4), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false, fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[{text:"Buddy Sanjay Kulkarni assigned to you", ts:Date.now()-6*86400000}]},
+  {name:"Neha Patil", empId:"INT1002", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2201", buddyNameNote:"Sanjay Kulkarni", subFunction:"Urban Market", region:"W2", depotName:"Panaji Depot", completion:30, status:"progress", buddyAssigned:"Yes", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(4), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false, fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]},
+  {name:"Karan Mehta", empId:"INT1003", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2202", buddyNameNote:"", subFunction:"Business Development", region:"N1", depotName:"Ahmedabad Depot", completion:15, status:"progress", buddyAssigned:"No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(4), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false, fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]},
+  {name:"Devika Rao", empId:"INT0901", batchId:"WEST-OTR-2026-01", buddyEmpId:"BUD2203", buddyNameNote:"Vikram Rao", subFunction:"Distribution", region:"C4", depotName:"Indore Depot", completion:100, status:"completed", buddyAssigned:"Yes", rtl:"Completed", ojt:defaultOjtState(), stint:defaultStatusMap(4), stintHighlights:"", marcScore:82, genAiScore:78, ojtUnlocked:false, fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]}
 ];
 
 let batches = [], buddies = [], interns = [];
@@ -724,7 +917,26 @@ async function loadAll(){
     if(error) throw error;
     if(internRows && internRows.length){
       interns = internRows.map(r=>r.data);
-      interns.forEach(i=>{ if(!i.buddyFbOnIntern) i.buddyFbOnIntern = defaultBuddyFbOnIntern(); });
+      interns.forEach(i=>{
+        if(!i.buddyFbOnIntern) i.buddyFbOnIntern = defaultBuddyFbOnIntern();
+        if(i.buddyNameNote===undefined) i.buddyNameNote = "";
+        if(i.stintHighlights===undefined) i.stintHighlights = "";
+        if(i.marcScore===undefined) i.marcScore = null;
+        if(i.genAiScore===undefined) i.genAiScore = null;
+        if(i.ojtUnlocked===undefined) i.ojtUnlocked = false;
+        // migrate old flat OJT status map ("Completed"/"Not Completed" per activity) to new per-item structure
+        const firstActivity = i.ojt && i.ojt[0];
+        if(firstActivity && typeof firstActivity === 'string'){
+          const oldOjt = i.ojt;
+          i.ojt = defaultOjtState();
+          Object.keys(oldOjt).forEach(idx=>{
+            if(oldOjt[idx] === 'Completed'){
+              Object.keys(i.ojt[idx].items).forEach(k=>{ i.ojt[idx].items[k] = 'Completed'; });
+              i.ojt[idx].status = 'Completed';
+            }
+          });
+        }
+      });
     } else { interns = SEED_INTERNS; await saveInterns(); }
   }catch(e){
     showDbError('Intern load failed', e);
@@ -768,48 +980,104 @@ function populateEntryBatchDropdown(){
   sel.innerHTML = batches.map(b=>`<option value="${b.id}">${b.name} ${b.status==='Closed'?'(Closed)':''}</option>`).join('');
 }
 
+const ALL_SCREENS = ['screen-role-select','screen-id-entry','screen-rtl-auth','screen-gm-region','screen-head-auth','screen-tch-auth','screen-coordinator-auth','app-shell'];
+function showScreen(id){
+  ALL_SCREENS.forEach(s=>document.getElementById(s).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+let pendingIdEntryRole = null; // 'intern' or 'buddy'
+let pendingGmRegion = null;
+
+document.querySelectorAll('.role-btn[data-role]').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    const role = btn.dataset.role;
+    if(role === 'intern' || role === 'buddy'){
+      pendingIdEntryRole = role;
+      document.getElementById('id-entry-title').textContent = role === 'intern' ? 'Intern' : 'Buddy';
+      document.getElementById('id-entry-tag').textContent = 'Batch & ID login';
+      document.getElementById('id-entry-label').textContent = role === 'intern' ? 'Trainee ID' : 'Employee ID';
+      document.getElementById('entry-empid').placeholder = role === 'intern' ? 'e.g. INT1042' : 'e.g. BUD2201';
+      document.getElementById('entry-empid').value = '';
+      document.getElementById('entry-error').style.display = 'none';
+      await loadAll();
+      showScreen('screen-id-entry');
+    }else if(role === 'rtl'){
+      document.getElementById('rtl-error').style.display='none';
+      document.getElementById('rtl-password').value='';
+      showScreen('screen-rtl-auth');
+    }else if(role === 'gm'){
+      const gmBtnBox = document.getElementById('gm-region-buttons');
+      gmBtnBox.innerHTML = ZONE_NAMES.map(z=>`<button class="role-btn" data-zone="${z}">${z}</button>`).join('');
+      gmBtnBox.querySelectorAll('button').forEach(rb=>{
+        rb.addEventListener('click', ()=>{
+          pendingGmRegion = rb.dataset.zone;
+          document.getElementById('gm-auth-title').textContent = 'GM — ' + pendingGmRegion;
+          document.getElementById('gm-auth-tag').textContent = `Covers: ${ZONES[pendingGmRegion].join(', ')} — password protected`;
+          document.getElementById('head-error').style.display='none';
+          document.getElementById('head-password').value='';
+          showScreen('screen-head-auth');
+        });
+      });
+      showScreen('screen-gm-region');
+    }else if(role === 'tch'){
+      document.getElementById('tch-error').style.display='none';
+      document.getElementById('tch-password').value='';
+      showScreen('screen-tch-auth');
+    }else if(role === 'coordinator'){
+      document.getElementById('coordinator-error').style.display='none';
+      document.getElementById('coordinator-password').value='';
+      showScreen('screen-coordinator-auth');
+    }
+  });
+});
+
+document.getElementById('id-entry-back').addEventListener('click', ()=>{ showScreen('screen-role-select'); });
+document.getElementById('rtl-auth-back').addEventListener('click', ()=>{ showScreen('screen-role-select'); });
+document.getElementById('gm-region-back').addEventListener('click', ()=>{ showScreen('screen-role-select'); });
+document.getElementById('head-auth-back').addEventListener('click', ()=>{ showScreen('screen-gm-region'); });
+document.getElementById('tch-auth-back').addEventListener('click', ()=>{ showScreen('screen-role-select'); });
+document.getElementById('coordinator-auth-back').addEventListener('click', ()=>{ showScreen('screen-role-select'); });
+
 document.getElementById('entry-submit').addEventListener('click', async ()=>{
   const batchId = document.getElementById('entry-batch').value;
   const empId = document.getElementById('entry-empid').value.trim();
   const err = document.getElementById('entry-error');
   err.style.display = 'none';
-  if(!empId){ err.textContent = "Please enter your Employee ID."; err.style.display='block'; return; }
+  const idLabel = pendingIdEntryRole === 'intern' ? 'Trainee ID' : 'Employee ID';
+  if(!empId){ err.textContent = `Please enter your ${idLabel}.`; err.style.display='block'; return; }
 
   const submitBtn = document.getElementById('entry-submit');
   submitBtn.disabled = true; submitBtn.textContent = "Checking…";
-  await loadAll(); // pull the latest shared data before matching
+  await loadAll();
   submitBtn.disabled = false; submitBtn.textContent = "Enter";
 
-  const intern = interns.find(i=>i.empId.toLowerCase()===empId.toLowerCase() && i.batchId===batchId);
-  if(intern){
-    currentUser = {role:'intern', empId: intern.empId, batchId};
-    internFocus = interns.indexOf(intern);
-    enterApp(); return;
+  if(pendingIdEntryRole === 'intern'){
+    const intern = interns.find(i=>i.empId.toLowerCase()===empId.toLowerCase() && i.batchId===batchId);
+    if(intern){
+      currentUser = {role:'intern', empId: intern.empId, batchId};
+      internFocus = interns.indexOf(intern);
+      enterApp(); return;
+    }
+    err.textContent = `${idLabel} not found in this batch. Contact your RTL if you believe this is an error.`;
+    err.style.display = 'block';
+  }else{
+    const buddy = buddies.find(b=>b.empId.toLowerCase()===empId.toLowerCase());
+    const hasInternsInBatch = buddy && interns.some(i=>i.batchId===batchId && i.buddyEmpId===buddy.empId);
+    if(buddy && hasInternsInBatch){
+      currentUser = {role:'buddy', empId: buddy.empId, batchId};
+      enterApp(); return;
+    }
+    err.textContent = `${idLabel} not found in this batch. Contact your RTL if you believe this is an error.`;
+    err.style.display = 'block';
   }
-  const buddy = buddies.find(b=>b.empId.toLowerCase()===empId.toLowerCase());
-  const hasInternsInBatch = buddy && interns.some(i=>i.batchId===batchId && i.buddyEmpId===buddy.empId);
-  if(buddy && hasInternsInBatch){
-    currentUser = {role:'buddy', empId: buddy.empId, batchId};
-    enterApp(); return;
-  }
-  err.textContent = "ID not found in this batch. Contact your RTL if you believe this is an error.";
-  err.style.display = 'block';
 });
 
-document.getElementById('link-rtl').addEventListener('click', ()=>{
-  document.getElementById('screen-entry').classList.add('hidden');
-  document.getElementById('screen-rtl-auth').classList.remove('hidden');
-});
-document.getElementById('rtl-auth-back').addEventListener('click', ()=>{
-  document.getElementById('screen-rtl-auth').classList.add('hidden');
-  document.getElementById('screen-entry').classList.remove('hidden');
-});
 document.getElementById('rtl-submit').addEventListener('click', async ()=>{
   const pw = document.getElementById('rtl-password').value;
   const err = document.getElementById('rtl-error');
   if(pw === RTL_PASSWORD){
     currentUser = {role:'rtl'};
-    document.getElementById('screen-rtl-auth').classList.add('hidden');
     await loadAll();
     enterApp();
   }else{
@@ -817,20 +1085,12 @@ document.getElementById('rtl-submit').addEventListener('click', async ()=>{
     err.style.display = 'block';
   }
 });
-document.getElementById('link-head').addEventListener('click', ()=>{
-  document.getElementById('screen-entry').classList.add('hidden');
-  document.getElementById('screen-head-auth').classList.remove('hidden');
-});
-document.getElementById('head-auth-back').addEventListener('click', ()=>{
-  document.getElementById('screen-head-auth').classList.add('hidden');
-  document.getElementById('screen-entry').classList.remove('hidden');
-});
+
 document.getElementById('head-submit').addEventListener('click', async ()=>{
   const pw = document.getElementById('head-password').value;
   const err = document.getElementById('head-error');
-  if(pw === GM_PASSWORD){
-    currentUser = {role:'head'};
-    document.getElementById('screen-head-auth').classList.add('hidden');
+  if(pw === ZONE_PASSWORDS[pendingGmRegion]){
+    currentUser = {role:'gm', region: pendingGmRegion};
     await loadAll();
     enterApp();
   }else{
@@ -838,23 +1098,51 @@ document.getElementById('head-submit').addEventListener('click', async ()=>{
     err.style.display = 'block';
   }
 });
+
+document.getElementById('tch-submit').addEventListener('click', async ()=>{
+  const pw = document.getElementById('tch-password').value;
+  const err = document.getElementById('tch-error');
+  if(pw === TCH_PASSWORD){
+    currentUser = {role:'tch'};
+    await loadAll();
+    enterApp();
+  }else{
+    err.textContent = "Incorrect password.";
+    err.style.display = 'block';
+  }
+});
+
+document.getElementById('coordinator-submit').addEventListener('click', async ()=>{
+  const pw = document.getElementById('coordinator-password').value;
+  const err = document.getElementById('coordinator-error');
+  if(pw === COORDINATOR_PASSWORD){
+    currentUser = {role:'coordinator'};
+    await loadAll();
+    enterApp();
+  }else{
+    err.textContent = "Incorrect password.";
+    err.style.display = 'block';
+  }
+});
+
 document.getElementById('logout-btn').addEventListener('click', ()=>{
-  currentUser = null; internFocus = null; buddyFocus = null;
-  document.getElementById('app-shell').classList.add('hidden');
+  currentUser = null; internFocus = null; buddyFocus = null; pendingIdEntryRole = null; pendingGmRegion = null;
   document.getElementById('entry-error').style.display='none';
   document.getElementById('rtl-error').style.display='none';
   document.getElementById('head-error').style.display='none';
+  document.getElementById('tch-error').style.display='none';
+  document.getElementById('coordinator-error').style.display='none';
   document.getElementById('entry-empid').value='';
   document.getElementById('rtl-password').value='';
   document.getElementById('head-password').value='';
-  document.getElementById('screen-entry').classList.remove('hidden');
+  document.getElementById('tch-password').value='';
+  document.getElementById('coordinator-password').value='';
+  showScreen('screen-role-select');
 });
 
 /* ================= ENTER APP ================= */
 function enterApp(){
-  document.getElementById('screen-entry').classList.add('hidden');
-  document.getElementById('screen-rtl-auth').classList.add('hidden');
-  document.getElementById('app-shell').classList.remove('hidden');
+  showScreen('app-shell');
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
 
   const who = document.getElementById('who-info');
@@ -880,10 +1168,18 @@ function enterApp(){
     document.getElementById('view-rtl').classList.add('active');
     who.innerHTML = `<b>RTL / Admin</b><br>Master Access`;
     renderRtlView();
-  }else if(currentUser.role === 'head'){
+  }else if(currentUser.role === 'gm'){
     document.getElementById('view-head').classList.add('active');
-    who.innerHTML = `<b>Regional Head</b><br>Read-only`;
-    renderHeadView();
+    who.innerHTML = `<b>GM — ${currentUser.region}</b><br>Read-only`;
+    renderHeadView(currentUser.region);
+  }else if(currentUser.role === 'tch'){
+    document.getElementById('view-head').classList.add('active');
+    who.innerHTML = `<b>TCH</b><br>All Regions — Read-only`;
+    renderHeadView(null);
+  }else if(currentUser.role === 'coordinator'){
+    document.getElementById('view-coordinator').classList.add('active');
+    who.innerHTML = `<b>Coordinator</b><br>Score Updates Only`;
+    renderCoordinatorView();
   }
 }
 
@@ -935,6 +1231,96 @@ function pushNotification(intern, text){
 }
 
 /* ================= INTERN VIEW ================= */
+function ojtActivityBlockHtml(activity, idx, ojtState, who, batch, closed, unlocked){
+  const totalItems = activity.points.length;
+  const completedItems = ojtItemCompletedCount(ojtState);
+  const pct = totalItems ? Math.round(completedItems/totalItems*100) : 0;
+  const gateOpen = pct >= 70 || unlocked;
+  const activityDate = ojtActivityDate(batch, idx);
+  const overdue = activityDate && (new Date() > activityDate) && ojtState.status !== 'Completed';
+  const dayLabel = activityDate ? `Day ${idx+1} · ${formatDate(activityDate)}` : `Day ${idx+1}`;
+
+  const itemsHtml = activity.points.map((p,j)=>{
+    const val = ojtState.items[j];
+    return `<div class="item-row">
+      <span>${p}</span>
+      <select class="item-status-select" data-who="${who}" data-act="${idx}" data-item="${j}" ${closed?'disabled':''}>
+        <option value="Not Completed" ${val==='Not Completed'?'selected':''}>Not Completed</option>
+        <option value="Completed" ${val==='Completed'?'selected':''}>Completed</option>
+      </select>
+    </div>`;
+  }).join('');
+
+  return `<div class="activity">
+    <div class="activity-head" data-toggle="${who}-item-${idx}" style="cursor:default;">
+      <div class="activity-title">
+        <span class="activity-num">${idx+1}</span>${activity.title}
+        <span class="day-badge ${overdue?'overdue':''}">${dayLabel}${overdue?' · Overdue':''}</span>
+      </div>
+      <div class="activity-right">
+        <select class="status-select ${TASK_CLASS[ojtState.status]}" data-who="${who}" data-act="${idx}" data-role="activity-status" ${closed?'disabled':''}>
+          <option value="Not Completed" ${ojtState.status==='Not Completed'?'selected':''}>Not Completed</option>
+          <option value="In Progress" ${ojtState.status==='In Progress'?'selected':''}>In Progress</option>
+          <option value="Completed" ${ojtState.status==='Completed'?'selected':''} ${!gateOpen?'disabled':''}>Completed</option>
+        </select>
+        <span class="chevron" id="chev-${who}-item-${idx}">▶</span>
+      </div>
+    </div>
+    <div class="activity-body" id="${who}-item-${idx}">
+      ${!gateOpen ? `<div class="gate-note">Complete at least 70% of the line items below to unlock "Completed" for this activity (currently ${pct}%).</div>` : ''}
+      ${itemsHtml}
+      ${overdue ? `<label style="margin-top:12px;">Why wasn't this completed on schedule?</label>
+        <textarea class="ojt-remark-box" data-who="${who}" data-act="${idx}" rows="2" placeholder="Add a short remark" ${closed?'disabled':''}>${ojtState.remark||''}</textarea>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderOjtTracker(intern, batch, containerEl, who, closed, onUpdate){
+  containerEl.innerHTML = OJT_ACTIVITIES.map((a,i)=>ojtActivityBlockHtml(a, i, intern.ojt[i], who, batch, closed, intern.ojtUnlocked)).join('');
+
+  containerEl.querySelectorAll('.activity-head').forEach(head=>{
+    head.addEventListener('click', (e)=>{
+      if(e.target.tagName === 'SELECT') return;
+      const id = head.dataset.toggle;
+      document.getElementById(id).classList.toggle('open');
+      document.getElementById('chev-'+id).classList.toggle('open');
+    });
+  });
+
+  containerEl.querySelectorAll('select.item-status-select').forEach(sel=>{
+    sel.addEventListener('click', e=>e.stopPropagation());
+    sel.addEventListener('change', async ()=>{
+      const act = parseInt(sel.dataset.act), item = parseInt(sel.dataset.item);
+      intern.ojt[act].items[item] = sel.value;
+      await saveInterns();
+      onUpdate();
+      showToast("Line item updated");
+    });
+  });
+
+  containerEl.querySelectorAll('select[data-role="activity-status"]').forEach(sel=>{
+    sel.addEventListener('click', e=>e.stopPropagation());
+    sel.addEventListener('change', async ()=>{
+      const act = parseInt(sel.dataset.act);
+      intern.ojt[act].status = sel.value;
+      if(sel.value === "Completed") pushNotification(intern, `You completed: ${OJT_ACTIVITIES[act].title.split('|')[0].trim()}`);
+      await saveInterns();
+      onUpdate();
+      showToast("OJT activity status updated");
+    });
+  });
+
+  containerEl.querySelectorAll('textarea.ojt-remark-box').forEach(box=>{
+    box.addEventListener('click', e=>e.stopPropagation());
+    box.addEventListener('change', async ()=>{
+      const act = parseInt(box.dataset.act);
+      intern.ojt[act].remark = box.value;
+      await saveInterns();
+      showToast("Remark saved");
+    });
+  });
+}
+
 function renderInternView(){
   const intern = interns[internFocus];
   const batch = batches.find(b=>b.id===intern.batchId);
@@ -942,40 +1328,37 @@ function renderInternView(){
   const buddy = buddies.find(b=>b.empId===intern.buddyEmpId);
 
   document.getElementById('intern-name').textContent = "Welcome, " + intern.name;
-  document.getElementById('intern-meta').textContent = `Batch: ${batch.name} · Sub-Function: ${intern.subFunction} · Buddy: ${buddy ? buddy.name : 'Not yet assigned'}`;
+  document.getElementById('intern-meta').textContent = `Batch: ${batch.name} · Sub-Function: ${intern.subFunction} · Buddy: ${intern.buddyNameNote || (buddy ? buddy.name : 'Not yet assigned')}`;
 
-  const steps = ["Buddy Assigned","In-house Training","Module Assessments","On-the-Job Training","Final Assessment","Completed"];
-  const currentIdx = intern.status === 'completed' ? 5 : 3;
+  const steps = ["Classroom Training","Buddy Assigned","OJT","Individual Tasks","MARC Assessment","GEN AI Update","Final Certification"];
+  let currentIdx = 0;
+  if(intern.status === 'completed') currentIdx = 6;
+  else if(intern.genAiScore!==null) currentIdx = 5;
+  else if(intern.marcScore!==null) currentIdx = 4;
+  else if(ojtActivitiesDoneCount(intern) >= 6) currentIdx = 3;
+  else if(intern.rtl === 'Completed') currentIdx = 2;
+  else if(intern.buddyAssigned === 'Yes') currentIdx = 1;
   document.getElementById('intern-flow').innerHTML = steps.map((s,i)=>{
     const cls = i < currentIdx ? "done" : (i === currentIdx ? "current" : "");
     const arrow = i < steps.length-1 ? '<span class="arrow">→</span>' : '';
     return `<div class="step ${cls}">${s}</div>${arrow}`;
   }).join('');
 
-  const baSel = document.getElementById('intern-buddy-assigned');
-  baSel.value = intern.buddyAssigned;
-  baSel.className = intern.buddyAssigned === "Yes" ? "assign-yes" : "assign-no";
-  baSel.disabled = closed;
-
   const rtlSel = document.getElementById('intern-rtl');
   rtlSel.value = intern.rtl;
   rtlSel.className = "status-select " + (intern.rtl === "Completed" ? "st-completed" : "st-notstarted");
   rtlSel.disabled = closed;
 
-  const ojtEl = document.getElementById('intern-ojt-list');
-  ojtEl.innerHTML = OJT_ACTIVITIES.map((a,i)=>activityHtml(a, i, intern.ojt[i], 'iojt', false)).join('');
-  bindAccordion(ojtEl);
-  ojtEl.querySelectorAll('select.status-select').forEach(sel=>{
-    sel.disabled = closed;
-    sel.addEventListener('change', async ()=>{
-      const idx = parseInt(sel.dataset.idx);
-      intern.ojt[idx] = sel.value;
-      if(sel.value === "Completed") pushNotification(intern, `You completed: ${OJT_ACTIVITIES[idx].title.split('|')[0].trim()}`);
-      await saveInterns();
-      renderInternView();
-      showToast("OJT activity status updated");
-    });
-  });
+  const baSel = document.getElementById('intern-buddy-assigned');
+  baSel.value = intern.buddyAssigned;
+  baSel.className = intern.buddyAssigned === "Yes" ? "assign-yes" : "assign-no";
+  baSel.disabled = closed;
+  const nameBox = document.getElementById('intern-buddy-name-box');
+  nameBox.classList.toggle('hidden', intern.buddyAssigned !== 'Yes');
+  document.getElementById('intern-buddy-name').value = intern.buddyNameNote || '';
+  document.getElementById('intern-buddy-name').disabled = closed;
+
+  renderOjtTracker(intern, batch, document.getElementById('intern-ojt-list'), 'iojt', closed, renderInternView);
 
   const stintTasks = getStintTasks(intern.subFunction);
   document.getElementById('intern-stint-badge').textContent = intern.subFunction;
@@ -995,6 +1378,9 @@ function renderInternView(){
       showToast("Individual Stint Task updated");
     });
   });
+  document.getElementById('intern-stint-highlights').value = intern.stintHighlights || '';
+  document.getElementById('intern-stint-highlights').disabled = closed;
+  document.getElementById('save-stint-highlights-btn').disabled = closed;
 
   renderFeedback(intern, closed);
 
@@ -1007,18 +1393,30 @@ function renderInternView(){
 document.getElementById('intern-buddy-assigned').addEventListener('change', async (e)=>{
   const intern = interns[internFocus];
   intern.buddyAssigned = e.target.value;
-  if(e.target.value === "Yes") pushNotification(intern, "Buddy assigned — join your RTL Induction session");
+  if(e.target.value === "Yes") pushNotification(intern, "Buddy assigned — join your Classroom Training session");
   await saveInterns();
   renderInternView();
   showToast("Buddy assignment status updated");
 });
+document.getElementById('intern-buddy-name').addEventListener('change', async (e)=>{
+  const intern = interns[internFocus];
+  intern.buddyNameNote = e.target.value.trim();
+  await saveInterns();
+  showToast("Buddy name saved");
+});
 document.getElementById('intern-rtl').addEventListener('change', async (e)=>{
   const intern = interns[internFocus];
   intern.rtl = e.target.value;
-  if(e.target.value === "Completed") pushNotification(intern, "RTL Induction complete — your OJT phase has started");
+  if(e.target.value === "Completed") pushNotification(intern, "Classroom Training complete — your OJT phase has started");
   await saveInterns();
   renderInternView();
-  showToast("RTL Induction status updated");
+  showToast("Classroom Training status updated");
+});
+document.getElementById('save-stint-highlights-btn').addEventListener('click', async ()=>{
+  const intern = interns[internFocus];
+  intern.stintHighlights = document.getElementById('intern-stint-highlights').value.trim();
+  await saveInterns();
+  showToast("Highlights saved");
 });
 
 document.querySelectorAll('.fb-tab').forEach(tab=>{
@@ -1125,21 +1523,11 @@ function renderBuddyView(){
     document.getElementById('buddy-feedback-form').innerHTML = '';
   }else{
     const intern = interns[buddyFocus];
-    ojtEl.innerHTML = OJT_ACTIVITIES.map((a,i)=>activityHtml(a, i, intern.ojt[i], 'bojt', false)).join('');
-    bindAccordion(ojtEl);
-    ojtEl.querySelectorAll('select.status-select').forEach(sel=>{
-      sel.disabled = closed;
-      sel.addEventListener('change', async ()=>{
-        const idx = parseInt(sel.dataset.idx);
-        intern.ojt[idx] = sel.value;
-        await saveInterns();
-        renderBuddyView();
-        showToast("OJT activity updated for " + intern.name);
-      });
-    });
+    renderOjtTracker(intern, batch, ojtEl, 'bojt', closed, renderBuddyView);
     const stintTasks = getStintTasks(intern.subFunction);
     stintEl.innerHTML = `<p class="helptext" style="margin-top:0;">${intern.name}'s Individual Stint Task progress (self-marked by intern):</p>` +
-      stintTasks.map((t,i)=>`<div class="rowflex" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="font-size:13px;">${t.title}</span>${swatch(intern.stint[i]==='Completed'?'completed':(intern.stint[i]==='In Progress'?'progress':'pending'))}</div>`).join('');
+      stintTasks.map((t,i)=>`<div class="rowflex" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="font-size:13px;">${t.title}</span>${swatch(intern.stint[i]==='Completed'?'completed':(intern.stint[i]==='In Progress'?'progress':'pending'))}</div>`).join('') +
+      (intern.stintHighlights ? `<div class="highlight-box"><b>⭐ Overachievement / Highlights:</b> ${intern.stintHighlights}</div>` : '');
 
     renderBuddyFeedbackForm(intern, closed);
   }
@@ -1210,6 +1598,9 @@ function renderRtlView(){
   document.getElementById('f-batch').innerHTML = batchOpts;
   document.getElementById('report-batch-select').innerHTML = batchOpts;
   document.getElementById('f-buddy').innerHTML = buddies.map(b=>`<option value="${b.empId}">${b.name} (${b.empId})</option>`).join('');
+  document.getElementById('f-region').innerHTML = ZONE_NAMES.map(z=>
+    `<optgroup label="${z}">${ZONES[z].map(st=>`<option value="${st}">${st}</option>`).join('')}</optgroup>`
+  ).join('');
 
   document.getElementById('rtl-batch-list').innerHTML = batches.map(b=>{
     const count = interns.filter(i=>i.batchId===b.id).length;
@@ -1249,11 +1640,14 @@ function renderRtlView(){
     const bfAvg = buddyFbAvg(i);
     const overall = overallBlendedScore(i);
     return `<tr><td><button class="link-btn" data-idx="${idx}">${i.name}</button></td><td>${i.empId}</td><td>${batch?batch.name:'—'}</td><td>${buddy?buddy.name:'—'}</td><td>${i.subFunction}</td><td>${swatch(i.status)}</td>
-    <td><div class="bar"><div style="width:${i.completion}%;"></div></div></td><td>${bfAvg!==null ? bfAvg.toFixed(1)+'/5' : '<span class="helptext">Pending</span>'}</td><td>${overall!==null ? '<b>'+overall.toFixed(1)+'/5</b>' : '<span class="helptext">Pending</span>'}</td>
+    <td><div class="bar"><div style="width:${i.completion}%;"></div></div></td><td>${bfAvg!==null ? bfAvg.toFixed(1)+'/5' : '<span class="helptext">Pending</span>'}</td><td>${overall!==null ? '<b class="score-link" data-score-idx="'+idx+'">'+overall+'%</b>' : '<span class="helptext">Pending</span>'}</td>
     <td><button class="btn ghost small edit-intern-btn" data-idx="${idx}">Edit</button></td></tr>`;
   }).join('') || `<tr><td colspan="10" class="empty">No interns yet.</td></tr>`;
   document.querySelectorAll('#rtl-intern-table .link-btn').forEach(btn=>{
     btn.addEventListener('click', ()=> openInternModal(parseInt(btn.dataset.idx)));
+  });
+  document.querySelectorAll('#rtl-intern-table .score-link').forEach(el=>{
+    el.addEventListener('click', ()=> openScoreBreakdown(parseInt(el.dataset.scoreIdx)));
   });
   document.querySelectorAll('#rtl-intern-table .edit-intern-btn').forEach(btn=>{
     btn.addEventListener('click', ()=> openInternEditModal(parseInt(btn.dataset.idx)));
@@ -1262,16 +1656,17 @@ function renderRtlView(){
 
 /* ================= DRILL-DOWN: Batch → Interns → Detail ================= */
 function journeySummary(intern){
-  const ojtDone = Object.values(intern.ojt).filter(v=>v==='Completed').length;
+  const ojtDone = ojtActivitiesDoneCount(intern);
   const stintDone = Object.values(intern.stint).filter(v=>v==='Completed').length;
-  return {ojtDone, ojtPct: Math.round(ojtDone/6*100), stintDone, stintPct: Math.round(stintDone/4*100)};
+  return {ojtDone, ojtPct: ojtCompletionPct(intern), stintDone, stintPct: Math.round(stintDone/4*100)};
 }
 
-function renderBatchDrilldown(batchId, targetElId){
+function renderBatchDrilldown(batchId, targetElId, zoneFilter){
   const batch = batches.find(b=>b.id===batchId);
-  const list = interns.filter(i=>i.batchId===batchId);
+  const zoneStates = zoneFilter ? ZONES[zoneFilter] : null;
+  const list = interns.filter(i=>i.batchId===batchId && (!zoneStates || zoneStates.includes(i.region)));
   const el = document.getElementById(targetElId);
-  el.innerHTML = `<h3 style="margin-top:24px;">At-a-Glance — ${batch.name} <span class="badge">${list.length} interns</span></h3>` +
+  el.innerHTML = `<h3 style="margin-top:24px;">At-a-Glance — ${batch.name}${zoneFilter?' ('+zoneFilter+')':''} <span class="badge">${list.length} interns</span></h3>` +
     (list.length ? list.map(i=>{
       const idx = interns.indexOf(i);
       const j = journeySummary(i);
@@ -1287,12 +1682,15 @@ function renderBatchDrilldown(batchId, targetElId){
           <div class="isc-bar-item">OJT ${j.ojtDone}/6<div class="bar"><div style="width:${j.ojtPct}%;"></div></div></div>
           <div class="isc-bar-item">Stint Tasks ${j.stintDone}/4<div class="bar"><div style="width:${j.stintPct}%;"></div></div></div>
           <div class="isc-bar-item">Buddy Rating<div style="margin-top:4px;font-size:13px;font-weight:700;color:var(--navy-2);">${bfAvg!==null ? bfAvg.toFixed(1)+'/5' : 'Pending'}</div></div>
-          <div class="isc-bar-item">Overall Score<div style="margin-top:4px;font-size:13px;font-weight:700;color:var(--gold);">${overall!==null ? overall.toFixed(1)+'/5' : 'Pending'}</div></div>
+          <div class="isc-bar-item">Overall Score<div class="score-link" data-score-idx="${idx}" style="margin-top:4px;font-size:13px;font-weight:700;color:var(--gold);">${overall!==null ? overall+'%' : 'Pending'}</div></div>
         </div>
       </div>`;
     }).join('') : `<div class="empty">No interns in this batch yet.</div>`);
   el.querySelectorAll('.intern-summary-card').forEach(card=>{
     card.addEventListener('click', ()=> openInternModal(parseInt(card.dataset.idx)));
+  });
+  el.querySelectorAll('.score-link').forEach(link=>{
+    link.addEventListener('click', (e)=>{ e.stopPropagation(); openScoreBreakdown(parseInt(link.dataset.scoreIdx)); });
   });
 }
 
@@ -1315,18 +1713,28 @@ function openInternModal(idx){
     ? OJT_ACTIVITIES.map((a,i)=>`<div class="mini-row"><span>${a.title}</span><b>${bfOnIntern.ojt[i] ?? '—'}/5</b></div>`).join('') +
       BUDDY_COMMON_PARAMS.map((p,i)=>`<div class="mini-row"><span>${p}</span><b>${bfOnIntern.common[i] ?? '—'}/5</b></div>`).join('')
     : `<div class="empty">Buddy has not rated this intern yet.</div>`;
+  const overall = overallBlendedScore(intern);
 
   document.getElementById('intern-modal-body').innerHTML = `
     <h2>${intern.name}</h2>
-    <p class="sub">Emp ID: ${intern.empId} · Batch: ${batch?batch.name:'—'} · Sub-Function: ${intern.subFunction} · Region: ${intern.region||'—'} · Depot: ${intern.depotName||'—'} · Buddy: ${buddy?buddy.name:'Not assigned'} · RTL Induction: ${intern.rtl}</p>
+    <p class="sub">Emp ID: ${intern.empId} · Batch: ${batch?batch.name:'—'} · Sub-Function: ${intern.subFunction} · Region: ${intern.region||'—'} · Depot: ${intern.depotName||'—'} · Buddy: ${intern.buddyNameNote || (buddy?buddy.name:'Not assigned')} · Classroom Training: ${intern.rtl}</p>
     <div class="grid cols-4">
       <div class="stat"><div class="num">${intern.buddyAssigned}</div><div class="lbl">Buddy Assigned</div></div>
-      <div class="stat"><div class="num">${Object.values(intern.ojt).filter(v=>v==='Completed').length}/6</div><div class="lbl">OJT Completed</div></div>
+      <div class="stat"><div class="num">${ojtActivitiesDoneCount(intern)}/6</div><div class="lbl">OJT Activities Completed</div></div>
       <div class="stat"><div class="num">${Object.values(intern.stint).filter(v=>v==='Completed').length}/4</div><div class="lbl">Stint Tasks Completed</div></div>
-      <div class="stat" style="border-color:var(--gold);"><div class="num" style="color:var(--gold);">${overallBlendedScore(intern)!==null ? overallBlendedScore(intern).toFixed(1)+'/5' : '—'}</div><div class="lbl">Overall Blended Score</div></div>
+      <div class="stat score-link" data-score-idx="${idx}" style="border-color:var(--gold);cursor:pointer;"><div class="num" style="color:var(--gold);">${overall!==null ? overall+'%' : '—'}</div><div class="lbl">Overall Blended Score (click for breakdown)</div></div>
+    </div>
+    ${intern.stintHighlights ? `<div class="highlight-box"><b>⭐ Overachievement / Highlights:</b> ${intern.stintHighlights}</div>` : ''}
+    <div class="modal-section"><h4>MARC Assessment & GEN AI Scores</h4>
+      <div class="mini-row"><span>MARC Assessment Score</span><b>${intern.marcScore!==null?intern.marcScore+'%':'Not yet entered'}</b></div>
+      <div class="mini-row"><span>GEN AI Update Score</span><b>${intern.genAiScore!==null?intern.genAiScore+'%':'Not yet entered'}</b></div>
     </div>
     <div class="modal-section"><h4>OJT Activity Status</h4>
-      ${OJT_ACTIVITIES.map((a,i)=>`<div class="mini-row"><span>${a.title}</span>${swatch(intern.ojt[i]==='Completed'?'completed':(intern.ojt[i]==='In Progress'?'progress':'pending'))}</div>`).join('')}
+      ${OJT_ACTIVITIES.map((a,i)=>{
+        const st = intern.ojt[i];
+        const pct = st.items ? Math.round(ojtItemCompletedCount(st)/a.points.length*100) : 0;
+        return `<div class="mini-row"><span>${a.title} <span class="helptext">(${pct}% items)</span>${st.remark?` — <span style="color:#B24A3C;">Remark: ${st.remark}</span>`:''}</span>${swatch(st.status==='Completed'?'completed':(st.status==='In Progress'?'progress':'pending'))}</div>`;
+      }).join('')}
     </div>
     <div class="modal-section"><h4>Individual Stint Task Status</h4>
       ${stintTasks.map((t,i)=>`<div class="mini-row"><span>${t.title}</span>${swatch(intern.stint[i]==='Completed'?'completed':(intern.stint[i]==='In Progress'?'progress':'pending'))}</div>`).join('')}
@@ -1338,12 +1746,47 @@ function openInternModal(idx){
       ${intern.notifications.length ? intern.notifications.map(n=>`<div class="mini-row"><span>${n.text}</span><span class="helptext">${timeAgo(n.ts)}</span></div>`).join('') : '<div class="empty">None yet.</div>'}
     </div>`;
   document.getElementById('intern-modal-overlay').classList.add('show');
+  const scoreLink = document.querySelector('#intern-modal-body .score-link');
+  if(scoreLink) scoreLink.addEventListener('click', ()=> openScoreBreakdown(idx));
 }
 document.getElementById('intern-modal-close').addEventListener('click', ()=>{
   document.getElementById('intern-modal-overlay').classList.remove('show');
 });
 document.getElementById('intern-modal-overlay').addEventListener('click', (e)=>{
   if(e.target.id === 'intern-modal-overlay') document.getElementById('intern-modal-overlay').classList.remove('show');
+});
+
+/* ================= SCORE BREAKDOWN MODAL ================= */
+function openScoreBreakdown(idx){
+  const intern = interns[idx];
+  if(!intern) return;
+  const c = scoreComponents(intern);
+  const overall = overallBlendedScore(intern);
+
+  const rows = [
+    {label:"OJT Completion", raw: c.ojtPct+"%", used: c.ojtPct, included:true},
+    {label:"Individual Stint Task Completion", raw: c.stintPct+"%", used: c.stintPct, included:true},
+    {label:"MARC Assessment Score", raw: c.marcScore!==null ? c.marcScore+"%" : "Not yet entered", used: c.marcScore, included: c.marcScore!==null},
+    {label:"GEN AI Update Score", raw: c.genAiScore!==null ? c.genAiScore+"%" : "Not yet entered", used: c.genAiScore, included: c.genAiScore!==null},
+    {label:"Buddy's Rating of Intern", raw: c.buddyRatingRaw!==null ? c.buddyRatingRaw.toFixed(1)+"/5 → "+c.buddyRatingPct+"%" : "Not yet rated", used: c.buddyRatingPct, included: c.buddyRatingPct!==null}
+  ];
+  const includedCount = rows.filter(r=>r.included).length;
+
+  document.getElementById('score-breakdown-body').innerHTML = `
+    <h2>Score Breakdown</h2>
+    <p class="sub">${intern.name} (${intern.empId})</p>
+    ${rows.map(r=>`<div class="mini-row"><span>${r.label}${!r.included?' <span class="helptext">(excluded — no data yet)</span>':''}</span><b>${r.raw}</b></div>`).join('')}
+    <div class="highlight-box" style="margin-top:16px;">
+      <b>Overall Blended Score = ${overall!==null?overall+'%':'—'}</b><br>
+      <span style="font-size:12px;">Average of the ${includedCount} component(s) with data available. Components not yet entered are skipped, not counted as zero.</span>
+    </div>`;
+  document.getElementById('score-breakdown-overlay').classList.add('show');
+}
+document.getElementById('score-breakdown-close').addEventListener('click', ()=>{
+  document.getElementById('score-breakdown-overlay').classList.remove('show');
+});
+document.getElementById('score-breakdown-overlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'score-breakdown-overlay') document.getElementById('score-breakdown-overlay').classList.remove('show');
 });
 
 /* ================= INTERN EDIT (RTL only): reassign buddy, region, depot, sub-function, remove ================= */
@@ -1360,6 +1803,7 @@ function openInternEditModal(idx){
   document.getElementById('edit-subfunction').value = intern.subFunction;
   document.getElementById('edit-region').value = intern.region || '';
   document.getElementById('edit-depot').value = intern.depotName && intern.depotName!=='—' ? intern.depotName : '';
+  document.getElementById('edit-ojt-unlock').checked = !!intern.ojtUnlocked;
 
   document.getElementById('intern-edit-overlay').classList.add('show');
 }
@@ -1379,6 +1823,7 @@ document.getElementById('save-intern-edit-btn').addEventListener('click', async 
   intern.subFunction = document.getElementById('edit-subfunction').value;
   intern.region = document.getElementById('edit-region').value.trim();
   intern.depotName = document.getElementById('edit-depot').value.trim() || '—';
+  intern.ojtUnlocked = document.getElementById('edit-ojt-unlock').checked;
   if(buddyChanged){
     intern.buddyAssigned = newBuddyEmpId ? "Yes" : "No";
     const newBuddy = buddies.find(b=>b.empId===newBuddyEmpId);
@@ -1518,8 +1963,8 @@ document.getElementById('add-intern-btn').addEventListener('click', async ()=>{
   const region = document.getElementById('f-region').value;
   const depotName = document.getElementById('f-depot').value.trim();
   if(!name || !empId || !batchId){ showToast("Enter intern name, Employee ID, and select a batch"); return; }
-  interns.push({name, empId, batchId, buddyEmpId, subFunction, region, depotName:depotName||'—', completion:0, status:"progress",
-    buddyAssigned:"No", rtl:"Not Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4),
+  interns.push({name, empId, batchId, buddyEmpId, buddyNameNote:"", subFunction, region, depotName:depotName||'—', completion:0, status:"progress",
+    buddyAssigned:"No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(4), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
     fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]});
   await saveInterns();
   renderRtlView();
@@ -1528,7 +1973,7 @@ document.getElementById('add-intern-btn').addEventListener('click', async ()=>{
 });
 
 document.getElementById('download-template').addEventListener('click', ()=>{
-  const csv = "Intern Name,Employee ID,Batch,Buddy Employee ID,Sub-Function,Region,Depot Name\nKarishma Iyer,INT1099,WEST-SIB-2026-01,BUD2201,Retail Sales,Maharashtra,Pune Depot\n";
+  const csv = "Intern Name,Employee ID,Batch,Buddy Employee ID,Sub-Function,Region,Depot Name\nKarishma Iyer,INT1099,WEST-SIB-2026-01,BUD2201,Retail Sales,W1,Pune Depot\n";
   downloadCsv(csv, "MARC_Intern_Batch_Template.csv");
 });
 document.getElementById('csv-upload').addEventListener('change', async (e)=>{
@@ -1539,8 +1984,8 @@ document.getElementById('csv-upload').addEventListener('change', async (e)=>{
   lines.forEach(line=>{
     const [name, empId, batchId, buddyEmpId, subFunction, region, depotName] = line.split(",").map(s=>s&&s.trim());
     if(name && empId){
-      interns.push({name, empId, batchId:batchId||batches[0].id, buddyEmpId:buddyEmpId||'', subFunction:subFunction||'Retail Sales', region:region||'Maharashtra', depotName:depotName||'—',
-        completion:0, status:"progress", buddyAssigned:"No", rtl:"Not Completed", ojt:defaultStatusMap(6), stint:defaultStatusMap(4),
+      interns.push({name, empId, batchId:batchId||batches[0].id, buddyEmpId:buddyEmpId||'', buddyNameNote:"", subFunction:subFunction||'Retail Sales', region:region||'Maharashtra', depotName:depotName||'—',
+        completion:0, status:"progress", buddyAssigned:"No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(4), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
         fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]});
       added++;
     }
@@ -1554,7 +1999,7 @@ function computeClosingReportData(batchId){
   const batch = batches.find(b=>b.id===batchId);
   const list = interns.filter(i=>i.batchId===batchId);
   const totalOjt = 6, totalStint = 4;
-  const avgOjt = list.length ? Math.round(list.reduce((a,i)=>a+Object.values(i.ojt).filter(v=>v==='Completed').length,0)/(list.length*totalOjt)*100) : 0;
+  const avgOjt = list.length ? Math.round(list.reduce((a,i)=>a+ojtActivitiesDoneCount(i),0)/(list.length*totalOjt)*100) : 0;
   const avgStint = list.length ? Math.round(list.reduce((a,i)=>a+Object.values(i.stint).filter(v=>v==='Completed').length,0)/(list.length*totalStint)*100) : 0;
   const rtlDone = list.filter(i=>i.rtl==='Completed').length;
   const fbRtlScores = list.filter(i=>i.fbRtl.submitted).flatMap(i=>Object.values(i.fbRtl.qual).filter(v=>v!==null));
@@ -1564,10 +2009,10 @@ function computeClosingReportData(batchId){
   const buddyRatingScores = list.map(i=>buddyFbAvg(i)).filter(v=>v!==null);
   const avgBuddyRating = buddyRatingScores.length ? (buddyRatingScores.reduce((a,c)=>a+c,0)/buddyRatingScores.length).toFixed(1) : "—";
   const atRisk = list.filter(i=>i.status==='delayed'||i.status==='failed');
-  const avgOverall = (()=>{ const v = list.map(i=>overallBlendedScore(i)).filter(x=>x!==null); return v.length ? (v.reduce((a,c)=>a+c,0)/v.length).toFixed(1) : "—"; })();
+  const avgOverall = (()=>{ const v = list.map(i=>overallBlendedScore(i)).filter(x=>x!==null); return v.length ? Math.round(v.reduce((a,c)=>a+c,0)/v.length) : "—"; })();
 
   const internRows = list.map(i=>{
-    const ojtDone = Object.values(i.ojt).filter(v=>v==='Completed').length;
+    const ojtDone = ojtActivitiesDoneCount(i);
     const stintDone = Object.values(i.stint).filter(v=>v==='Completed').length;
     const overall = overallBlendedScore(i);
     const buddy = buddies.find(b=>b.empId===i.buddyEmpId);
@@ -1575,7 +2020,9 @@ function computeClosingReportData(batchId){
       : (ojtDone>=4) ? 'Extend' : 'Not Certified';
     return {name:i.name, empId:i.empId, subFunction:i.subFunction, region:i.region||'—', depotName:i.depotName||'—',
       buddy: buddy?buddy.name:'—', ojtDone, totalOjt, stintDone, totalStint,
-      overall: overall!==null?overall.toFixed(1):'—', status:STATUS_LABEL[i.status]||i.status, recommendation:rec};
+      marcScore: i.marcScore!==null?i.marcScore:'—', genAiScore: i.genAiScore!==null?i.genAiScore:'—',
+      overall: overall!==null?overall+'%':'—', status:STATUS_LABEL[i.status]||i.status, recommendation:rec,
+      highlights: i.stintHighlights||''};
   });
 
   return {batch, list, totalOjt, totalStint, avgOjt, avgStint, rtlDone, avgFbRtl, avgFbBuddy, avgBuddyRating, avgOverall, atRisk, internRows};
@@ -1587,7 +2034,7 @@ document.getElementById('generate-report-btn').addEventListener('click', ()=>{
 
   const rowsHtml = d.internRows.map(r=>{
     const recClass = r.recommendation==='Certified' ? 's-completed' : (r.recommendation==='Extend' ? 's-progress' : 's-delayed');
-    return `<tr><td>${r.name}</td><td>${r.subFunction}</td><td>${r.ojtDone}/${r.totalOjt}</td><td>${r.stintDone}/${r.totalStint}</td><td>${r.overall!=='—'?r.overall+'/5':'—'}</td><td><span class="swatch ${recClass}">${r.recommendation}</span></td></tr>`;
+    return `<tr><td>${r.name}</td><td>${r.subFunction}</td><td>${r.ojtDone}/${r.totalOjt}</td><td>${r.stintDone}/${r.totalStint}</td><td>${r.overall}</td><td><span class="swatch ${recClass}">${r.recommendation}</span></td></tr>`;
   }).join('');
 
   document.getElementById('closing-report-output').innerHTML = `
@@ -1596,13 +2043,13 @@ document.getElementById('generate-report-btn').addEventListener('click', ()=>{
       <div class="stat"><div class="num">${d.list.length}</div><div class="lbl">Total Interns</div></div>
       <div class="stat"><div class="num">${d.avgOjt}%</div><div class="lbl">Avg OJT Completion</div></div>
       <div class="stat"><div class="num">${d.avgStint}%</div><div class="lbl">Avg Stint Task Completion</div></div>
-      <div class="stat"><div class="num">${d.rtlDone}/${d.list.length}</div><div class="lbl">RTL Induction Done</div></div>
+      <div class="stat"><div class="num">${d.rtlDone}/${d.list.length}</div><div class="lbl">Classroom Training Done</div></div>
     </div>
     <div class="grid cols-4" style="margin-top:14px;">
       <div class="stat"><div class="num">${d.avgFbRtl}</div><div class="lbl">Avg RTL Induction Feedback (/5)</div></div>
       <div class="stat"><div class="num">${d.avgFbBuddy}</div><div class="lbl">Avg Buddy Feedback (/5)</div></div>
       <div class="stat"><div class="num">${d.avgBuddyRating}</div><div class="lbl">Avg Buddy Rating of Interns (/5)</div></div>
-      <div class="stat" style="border-color:var(--gold);"><div class="num" style="color:var(--gold);">${d.avgOverall}</div><div class="lbl">Avg Overall Blended Score</div></div>
+      <div class="stat" style="border-color:var(--gold);"><div class="num" style="color:var(--gold);">${d.avgOverall!=='—'?d.avgOverall+'%':'—'}</div><div class="lbl">Avg Overall Blended Score</div></div>
     </div>
     </section>
     <section><h3>Per-Intern Recommendation</h3>
@@ -1633,11 +2080,11 @@ document.getElementById('download-report-btn').addEventListener('click', ()=>{
     ["Total Interns", d.list.length],
     ["Avg OJT Completion", d.avgOjt + "%"],
     ["Avg Stint Task Completion", d.avgStint + "%"],
-    ["RTL Induction Done", d.rtlDone + " / " + d.list.length],
+    ["Classroom Training Done", d.rtlDone + " / " + d.list.length],
     ["Avg RTL Induction Feedback (/5)", d.avgFbRtl],
     ["Avg Buddy Feedback (/5)", d.avgFbBuddy],
     ["Avg Buddy Rating of Interns (/5)", d.avgBuddyRating],
-    ["Avg Overall Blended Score (/5)", d.avgOverall]
+    ["Avg Overall Blended Score (%)", d.avgOverall!=='—'?d.avgOverall+'%':'—']
   ];
   const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
   wsSummary['!cols'] = [{wch:32},{wch:22}];
@@ -1647,10 +2094,12 @@ document.getElementById('download-report-btn').addEventListener('click', ()=>{
     "Intern Name": r.name, "Employee ID": r.empId, "Sub-Function": r.subFunction,
     "Region": r.region, "Depot Name": r.depotName, "Buddy": r.buddy,
     "OJT Completed": `${r.ojtDone}/${r.totalOjt}`, "Stint Tasks Completed": `${r.stintDone}/${r.totalStint}`,
-    "Overall Score": r.overall, "Current Status": r.status, "Recommendation": r.recommendation
+    "MARC Assessment Score": r.marcScore, "GEN AI Score": r.genAiScore,
+    "Overall Blended Score": r.overall, "Current Status": r.status, "Recommendation": r.recommendation,
+    "Overachievement Highlights": r.highlights
   }));
   const wsInterns = XLSX.utils.json_to_sheet(internSheetData);
-  wsInterns['!cols'] = [{wch:20},{wch:14},{wch:20},{wch:16},{wch:16},{wch:18},{wch:14},{wch:16},{wch:12},{wch:16},{wch:14}];
+  wsInterns['!cols'] = [{wch:20},{wch:14},{wch:20},{wch:16},{wch:16},{wch:18},{wch:14},{wch:16},{wch:16},{wch:12},{wch:16},{wch:14},{wch:30}];
   XLSX.utils.book_append_sheet(wb, wsInterns, "Per-Intern Recommendation");
 
   const atRiskData = d.atRisk.map(i=>({"Intern Name": i.name, "Employee ID": i.empId, "Status": STATUS_LABEL[i.status]||i.status}));
@@ -1671,35 +2120,50 @@ function downloadCsv(content, filename){
 }
 
 /* ================= REGIONAL HEAD VIEW ================= */
-function renderHeadView(){
-  const s = {total:interns.length, completed:interns.filter(i=>i.status==='completed').length,
-    progress:interns.filter(i=>i.status==='progress').length, delayed:interns.filter(i=>i.status==='delayed').length};
+function renderHeadView(zoneFilter){
+  const zoneStates = zoneFilter ? ZONES[zoneFilter] : null;
+  const scopedInterns = zoneStates ? interns.filter(i=>zoneStates.includes(i.region)) : interns;
+
+  document.getElementById('head-pagehead').textContent = zoneFilter ? `Regional Dashboard — ${zoneFilter}` : "Regional Dashboard — Pan India (TCH)";
+  document.getElementById('head-subhead').textContent = zoneFilter
+    ? `Read-only overview, scoped to ${zoneFilter} (${zoneStates.join(', ')}) only`
+    : "Read-only overview across all zones, states, and batches";
+  document.getElementById('head-region-section').classList.toggle('hidden', !!zoneFilter);
+
+  const s = {total:scopedInterns.length, completed:scopedInterns.filter(i=>i.status==='completed').length,
+    progress:scopedInterns.filter(i=>i.status==='progress').length, delayed:scopedInterns.filter(i=>i.status==='delayed').length};
   document.getElementById('head-stats').innerHTML = `
-    <div class="stat"><div class="num">${s.total}</div><div class="lbl">Total Interns — All Batches</div></div>
+    <div class="stat"><div class="num">${s.total}</div><div class="lbl">Total Interns${zoneFilter?' — '+zoneFilter:' — All Zones'}</div></div>
     <div class="stat"><div class="num">${s.completed}</div><div class="lbl">Completed</div></div>
     <div class="stat"><div class="num">${s.progress}</div><div class="lbl">In Progress</div></div>
     <div class="stat"><div class="num">${s.delayed}</div><div class="lbl">Delayed</div></div>`;
 
-  document.getElementById('head-batch-table').innerHTML = batches.map(b=>{
-    const list = interns.filter(i=>i.batchId===b.id);
+  const scopedBatchIds = new Set(scopedInterns.map(i=>i.batchId));
+  const visibleBatches = zoneFilter ? batches.filter(b=>scopedBatchIds.has(b.id)) : batches;
+  document.getElementById('head-batch-table').innerHTML = visibleBatches.map(b=>{
+    const list = scopedInterns.filter(i=>i.batchId===b.id);
     const completed = list.filter(i=>i.status==='completed').length;
     const delayed = list.filter(i=>i.status==='delayed').length;
-    return `<tr><td><button class="link-btn" data-batchid="${b.id}" data-target="head-batch-drilldown">${b.name}</button></td><td>${b.type}</td><td>${swatch(b.status==='Closed'?'delayed':'completed')}</td><td>${list.length}</td><td>${completed}</td><td>${delayed}</td></tr>`;
+    return `<tr><td><button class="link-btn" data-batchid="${b.id}" data-target="head-batch-drilldown" data-zone="${zoneFilter||''}">${b.name}</button></td><td>${b.type}</td><td>${swatch(b.status==='Closed'?'delayed':'completed')}</td><td>${list.length}</td><td>${completed}</td><td>${delayed}</td></tr>`;
   }).join('') || `<tr><td colspan="6" class="empty">No batches yet.</td></tr>`;
   document.querySelectorAll('#head-batch-table .link-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=> renderBatchDrilldown(btn.dataset.batchid, btn.dataset.target));
+    btn.addEventListener('click', ()=> renderBatchDrilldown(btn.dataset.batchid, btn.dataset.target, btn.dataset.zone || null));
   });
 
-  const regions = [...new Set(interns.map(i=>i.region))];
-  document.getElementById('head-state-table').innerHTML = regions.map(rg=>{
-    const list = interns.filter(i=>i.region===rg);
-    const completed = list.filter(i=>i.status==='completed').length;
-    const delayed = list.filter(i=>i.status==='delayed').length;
-    return `<tr><td>${rg}</td><td>${list.length}</td><td>${completed}</td><td>${delayed}</td></tr>`;
-  }).join('') || `<tr><td colspan="4" class="empty">No data yet.</td></tr>`;
+  if(!zoneFilter){
+    const regions = [...new Set(interns.map(i=>i.region))];
+    document.getElementById('head-state-table').innerHTML = regions.map(rg=>{
+      const list = interns.filter(i=>i.region===rg);
+      const completed = list.filter(i=>i.status==='completed').length;
+      const delayed = list.filter(i=>i.status==='delayed').length;
+      return `<tr><td>${rg} <span class="helptext">(${zoneOfState(rg)||'—'})</span></td><td>${list.length}</td><td>${completed}</td><td>${delayed}</td></tr>`;
+    }).join('') || `<tr><td colspan="4" class="empty">No data yet.</td></tr>`;
+  }
 
-  document.getElementById('head-buddy-table').innerHTML = buddies.map(bd=>{
-    const mine = interns.filter(i=>i.buddyEmpId===bd.empId);
+  const scopedBuddyEmpIds = new Set(scopedInterns.map(i=>i.buddyEmpId));
+  const visibleBuddies = zoneFilter ? buddies.filter(bd=>scopedBuddyEmpIds.has(bd.empId)) : buddies;
+  document.getElementById('head-buddy-table').innerHTML = visibleBuddies.map(bd=>{
+    const mine = scopedInterns.filter(i=>i.buddyEmpId===bd.empId);
     if(!mine.length) return `<tr><td>${bd.name}</td><td>${bd.region}</td><td>0</td><td>—</td><td>—</td><td>—</td></tr>`;
     const avgCompletion = Math.round(mine.reduce((a,i)=>a+i.completion,0)/mine.length);
     const receivedScores = mine.filter(i=>i.fbBuddy.submitted).flatMap(i=>[...Object.values(i.fbBuddy.qual),...Object.values(i.fbBuddy.quant)].filter(v=>v!==null));
@@ -1709,6 +2173,72 @@ function renderHeadView(){
     return `<tr><td>${bd.name}</td><td>${bd.region}</td><td>${mine.length}</td><td>${avgCompletion}%</td><td>${avgReceived}</td><td>${avgGiven}</td></tr>`;
   }).join('') || `<tr><td colspan="6" class="empty">No buddies in the pool yet.</td></tr>`;
 }
+
+
+/* ================= COORDINATOR VIEW ================= */
+function renderCoordinatorView(){
+  const batchSel = document.getElementById('coordinator-batch-filter');
+  batchSel.innerHTML = `<option value="">All Batches</option>` + batches.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+  renderCoordinatorTable();
+  batchSel.onchange = renderCoordinatorTable;
+}
+function renderCoordinatorTable(){
+  const batchFilter = document.getElementById('coordinator-batch-filter').value;
+  const list = batchFilter ? interns.filter(i=>i.batchId===batchFilter) : interns;
+  document.getElementById('coordinator-intern-table').innerHTML = list.map(i=>{
+    const idx = interns.indexOf(i);
+    const batch = batches.find(b=>b.id===i.batchId);
+    const closed = isBatchClosed(i.batchId);
+    return `<tr>
+      <td>${i.name}</td><td>${i.empId}</td><td>${batch?batch.name:'—'}</td>
+      <td><input type="number" min="0" max="100" class="coord-score-input" data-idx="${idx}" data-field="marcScore" value="${i.marcScore!==null?i.marcScore:''}" placeholder="0-100" ${closed?'disabled':''} style="width:90px;"></td>
+      <td><input type="number" min="0" max="100" class="coord-score-input" data-idx="${idx}" data-field="genAiScore" value="${i.genAiScore!==null?i.genAiScore:''}" placeholder="0-100" ${closed?'disabled':''} style="width:90px;"></td>
+      <td><button class="btn small save-coord-score-btn" data-idx="${idx}" ${closed?'disabled':''}>Save</button></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty">No interns found.</td></tr>`;
+
+  document.querySelectorAll('.save-coord-score-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const idx = parseInt(btn.dataset.idx);
+      const intern = interns[idx];
+      const row = btn.closest('tr');
+      const marcInput = row.querySelector('[data-field="marcScore"]');
+      const genAiInput = row.querySelector('[data-field="genAiScore"]');
+      const marcVal = marcInput.value.trim();
+      const genAiVal = genAiInput.value.trim();
+      intern.marcScore = marcVal === '' ? null : Math.max(0, Math.min(100, parseInt(marcVal)));
+      intern.genAiScore = genAiVal === '' ? null : Math.max(0, Math.min(100, parseInt(genAiVal)));
+      await saveInterns();
+      showToast(intern.name + "'s scores saved");
+    });
+  });
+}
+document.getElementById('download-coordinator-template').addEventListener('click', ()=>{
+  const csv = "Employee ID,Batch,MARC Assessment Score,GEN AI Score\nINT1001,WEST-SIB-2026-01,85,78\n";
+  downloadCsv(csv, "MARC_Coordinator_Score_Template.csv");
+});
+document.getElementById('coordinator-csv-upload').addEventListener('change', async (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const text = await file.text();
+  const lines = text.trim().split("\n").slice(1);
+  let updated = 0, notFound = 0;
+  lines.forEach(line=>{
+    const [empId, batchId, marcScore, genAiScore] = line.split(",").map(s=>s&&s.trim());
+    if(!empId) return;
+    const intern = interns.find(i=>i.empId===empId && (!batchId || i.batchId===batchId));
+    if(intern){
+      if(marcScore!==undefined && marcScore!=='') intern.marcScore = Math.max(0, Math.min(100, parseInt(marcScore)));
+      if(genAiScore!==undefined && genAiScore!=='') intern.genAiScore = Math.max(0, Math.min(100, parseInt(genAiScore)));
+      updated++;
+    }else{
+      notFound++;
+    }
+  });
+  await saveInterns();
+  renderCoordinatorTable();
+  document.getElementById('coordinator-csv-status').textContent = `${updated} intern(s) updated.${notFound?' '+notFound+' row(s) had no matching Employee ID.':''}`;
+  showToast(`${updated} intern score(s) updated`);
+});
 
 /* ================= TOAST ================= */
 function showToast(msg){
