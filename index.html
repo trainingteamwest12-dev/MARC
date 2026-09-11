@@ -44,6 +44,8 @@
   .item-row span{font-size:12px;color:var(--ink-soft);flex:1;}
   .item-row select{width:130px;flex-shrink:0;}
   .gate-note{font-size:11.5px;color:var(--swatch-progress);margin-top:6px;font-style:italic;}
+  .stint-task-card{background:#fff;border:1px solid var(--line);border-radius:9px;padding:14px;margin-bottom:12px;}
+  .stint-task-card .rowflex{justify-content:space-between;align-items:center;}
 
   /* ---------- Header ---------- */
   header.top{background:var(--navy);color:#fff;padding:22px 28px 0;}
@@ -418,6 +420,7 @@
         <button class="rtl-tab active" data-sub="rtl-batches">Batches</button>
         <button class="rtl-tab" data-sub="rtl-buddies">Buddy Pool</button>
         <button class="rtl-tab" data-sub="rtl-interns">Interns</button>
+        <button class="rtl-tab" data-sub="rtl-stint-templates">Stint Tasks</button>
         <button class="rtl-tab" data-sub="rtl-report">Closing Report</button>
       </div>
 
@@ -432,8 +435,10 @@
               <option value="Summer Intern">Summer Intern Batch (auto-closes in 2 months)</option>
               <option value="Off-Role to On-Role">Off-Role to On-Role Batch (auto-closes in 1 month)</option>
             </select>
-            <label>Start Date</label>
+            <label>Start Date <span class="helptext" style="display:inline;">(Classroom Training / RTL Session begins)</span></label>
             <input type="date" id="b-start">
+            <label>OJT Start Date <span class="helptext" style="display:inline;">(once Classroom Training is over — OJT day-count is calculated from here, not the batch start date)</span></label>
+            <input type="date" id="b-ojtstart">
             <label>RTL Name</label>
             <select id="b-rtl">
               <option>Swapnil Dahiwal</option>
@@ -517,6 +522,26 @@
             <tbody id="rtl-intern-table"></tbody></table>
           </div>
         </section>
+      </div>
+
+      <div class="subview" id="rtl-stint-templates">
+        <div class="card">
+          <h3 style="margin-top:0;">Define Individual Stint Tasks per Sub-Function</h3>
+          <p class="helptext">Changes here apply to newly created interns going forward. Interns already added keep the task list they were created with.</p>
+          <label>Sub-Function</label>
+          <select id="stint-template-subfunction">
+            <option>Retail Sales</option><option>Distribution</option><option>Urban Market</option>
+            <option>Business Development</option><option>Prolinks</option><option>RPO</option>
+          </select>
+          <div id="stint-template-editor" style="margin-top:16px;"></div>
+          <div class="rowflex" style="margin-top:16px;justify-content:space-between;">
+            <div class="rowflex">
+              <button class="btn ghost small" id="add-stint-task-btn">+ Add Task</button>
+              <button class="btn ghost small" id="reset-stint-template-btn" style="border-color:#B24A3C;color:#B24A3C;">Reset to Default</button>
+            </div>
+            <button class="btn" id="save-stint-template-btn">Save Template</button>
+          </div>
+        </div>
       </div>
 
       <div class="subview" id="rtl-report">
@@ -608,7 +633,7 @@
     <input type="text" id="edit-depot" placeholder="e.g. Pune Depot">
     <div class="rowflex" style="margin-top:16px;align-items:center;">
       <input type="checkbox" id="edit-ojt-unlock" style="width:auto;">
-      <label style="margin:0;" for="edit-ojt-unlock">Unlock OJT updates for this intern (bypasses day schedule &amp; 70% gate — use if they fell behind for a valid reason)</label>
+      <label style="margin:0;" for="edit-ojt-unlock">Reopen overdue OJT updates for this intern (skips the mandatory remark for overdue activities — the 70% completion gate always still applies, no exceptions)</label>
     </div>
     <div class="rowflex" style="margin-top:22px;justify-content:space-between;">
       <button class="btn" id="save-intern-edit-btn">Save Changes</button>
@@ -727,11 +752,16 @@ const STINT_TASKS_DETAILED = [
 ];
 const GENERIC_PREFIX = {"Business Development":"BD","Prolinks":"Prolinks","RPO":"RPO"};
 const DETAILED_SUBFUNCTIONS = ["Retail Sales","Distribution","Urban Market"];
+let stintTemplates = {}; // RTL-defined overrides, keyed by sub-function; loaded from Supabase
 
-function getStintTasks(subFunction){
+function defaultStintTasksFor(subFunction){
   if(DETAILED_SUBFUNCTIONS.includes(subFunction)) return STINT_TASKS_DETAILED;
   const prefix = GENERIC_PREFIX[subFunction] || subFunction;
   return [1,2,3,4].map(n=>({title:`${prefix} Task ${n}`, target:"TBD", notes:["Details pending — to be defined for this sub-function."]}));
+}
+function getStintTasks(subFunction){
+  if(stintTemplates[subFunction] && stintTemplates[subFunction].length) return stintTemplates[subFunction];
+  return defaultStintTasksFor(subFunction);
 }
 
 const FB_RTL_QUESTIONS = [
@@ -775,8 +805,10 @@ function defaultOjtState(){
   return o;
 }
 function ojtActivityDate(batch, idx){
-  if(!batch || !batch.start) return null;
-  const d = new Date(batch.start);
+  if(!batch) return null;
+  const base = batch.ojtStart || batch.start; // fall back for batches created before OJT Start Date existed
+  if(!base) return null;
+  const d = new Date(base);
   d.setDate(d.getDate()+idx);
   return d;
 }
@@ -854,8 +886,8 @@ function overallBlendedScore(intern){
 }
 
 const SEED_BATCHES = [
-  {id:"WEST-SIB-2026-01", name:"WEST-SIB-2026-01", type:"Summer Intern", start:"2026-06-01", close:computeCloseDate("2026-06-01","Summer Intern"), rtl:"Swapnil Dahiwal", status:"Active"},
-  {id:"WEST-OTR-2026-01", name:"WEST-OTR-2026-01", type:"Off-Role to On-Role", start:"2026-04-01", close:computeCloseDate("2026-04-01","Off-Role to On-Role"), rtl:"Dummy 1", status:"Closed"}
+  {id:"WEST-SIB-2026-01", name:"WEST-SIB-2026-01", type:"Summer Intern", start:"2026-06-01", ojtStart:"2026-06-08", close:computeCloseDate("2026-06-01","Summer Intern"), rtl:"Swapnil Dahiwal", status:"Active"},
+  {id:"WEST-OTR-2026-01", name:"WEST-OTR-2026-01", type:"Off-Role to On-Role", start:"2026-04-01", ojtStart:"2026-04-07", close:computeCloseDate("2026-04-01","Off-Role to On-Role"), rtl:"Dummy 1", status:"Closed"}
 ];
 const SEED_BUDDIES = [
   {name:"Sanjay Kulkarni", empId:"BUD2201", designation:"Area Sales Manager", region:"W1", depotName:"Pune Depot", status:"Active"},
@@ -948,6 +980,16 @@ async function loadAll(){
   }catch(e){
     showDbError('Intern load failed', e);
     interns = SEED_INTERNS;
+  }
+
+  try{
+    const {data: templateRows, error} = await sb.from('stint_templates').select('*');
+    if(error) throw error;
+    stintTemplates = {};
+    (templateRows||[]).forEach(row=>{ stintTemplates[row.sub_function] = row.data; });
+  }catch(e){
+    // Non-critical: table may not exist yet if this feature hasn't been set up in Supabase. Fall back to defaults silently.
+    stintTemplates = {};
   }
 
   populateEntryBatchDropdown();
@@ -1175,6 +1217,7 @@ function enterApp(){
     document.getElementById('view-rtl').classList.add('active');
     who.innerHTML = `<b>RTL / Admin</b><br>Master Access`;
     renderRtlView();
+    loadStintTemplateDraft(document.getElementById('stint-template-subfunction').value);
   }else if(currentUser.role === 'gm'){
     document.getElementById('view-head').classList.add('active');
     who.innerHTML = `<b>GM — ${currentUser.region}</b><br>Read-only`;
@@ -1242,16 +1285,18 @@ function ojtActivityBlockHtml(activity, idx, ojtState, who, batch, closed, unloc
   const totalItems = activity.points.length;
   const completedItems = ojtItemCompletedCount(ojtState);
   const pct = totalItems ? Math.round(completedItems/totalItems*100) : 0;
-  const gateOpen = pct >= 70 || unlocked;
+  const gateOpen = pct >= 70; // 70% rule is mandatory — never bypassed, even by RTL unlock
   const activityDate = ojtActivityDate(batch, idx);
   const overdue = activityDate && (new Date() > activityDate) && ojtState.status !== 'Completed';
+  const remarkMissing = overdue && !ojtState.remark && !unlocked;
+  const fieldsLocked = remarkMissing; // overdue with no remark blocks further edits until explained (or RTL reopens)
   const dayLabel = activityDate ? `Day ${idx+1} · ${formatDate(activityDate)}` : `Day ${idx+1}`;
 
   const itemsHtml = activity.points.map((p,j)=>{
     const val = ojtState.items[j];
     return `<div class="item-row">
       <span>${p}</span>
-      <select class="item-status-select" data-who="${who}" data-act="${idx}" data-item="${j}" ${closed?'disabled':''}>
+      <select class="item-status-select" data-who="${who}" data-act="${idx}" data-item="${j}" ${(closed||fieldsLocked)?'disabled':''}>
         <option value="Not Completed" ${val==='Not Completed'?'selected':''}>Not Completed</option>
         <option value="Completed" ${val==='Completed'?'selected':''}>Completed</option>
       </select>
@@ -1265,7 +1310,7 @@ function ojtActivityBlockHtml(activity, idx, ojtState, who, batch, closed, unloc
         <span class="day-badge ${overdue?'overdue':''}">${dayLabel}${overdue?' · Overdue':''}</span>
       </div>
       <div class="activity-right">
-        <select class="status-select ${TASK_CLASS[ojtState.status]}" data-who="${who}" data-act="${idx}" data-role="activity-status" ${closed?'disabled':''}>
+        <select class="status-select ${TASK_CLASS[ojtState.status]}" data-who="${who}" data-act="${idx}" data-role="activity-status" ${(closed||fieldsLocked)?'disabled':''}>
           <option value="Not Completed" ${ojtState.status==='Not Completed'?'selected':''}>Not Completed</option>
           <option value="In Progress" ${ojtState.status==='In Progress'?'selected':''}>In Progress</option>
           <option value="Completed" ${ojtState.status==='Completed'?'selected':''} ${!gateOpen?'disabled':''}>Completed</option>
@@ -1274,9 +1319,10 @@ function ojtActivityBlockHtml(activity, idx, ojtState, who, batch, closed, unloc
       </div>
     </div>
     <div class="activity-body" id="${who}-item-${idx}">
-      ${!gateOpen ? `<div class="gate-note">Complete at least 70% of the line items below to unlock "Completed" for this activity (currently ${pct}%).</div>` : ''}
+      ${!gateOpen ? `<div class="gate-note">Complete at least 70% of the line items below to unlock "Completed" for this activity (currently ${pct}%). This rule always applies, even if your RTL reopens this activity.</div>` : ''}
+      ${remarkMissing ? `<div class="gate-note" style="color:#B24A3C;">This activity is overdue. Add a mandatory remark below explaining the delay before you can continue updating it — or ask your RTL to reopen it for you.</div>` : ''}
       ${itemsHtml}
-      ${overdue ? `<label style="margin-top:12px;">Why wasn't this completed on schedule?</label>
+      ${overdue ? `<label style="margin-top:12px;">Why wasn't this completed on schedule? ${!ojtState.remark?'<span style="color:#B24A3C;">(required)</span>':''}</label>
         <textarea class="ojt-remark-box" data-who="${who}" data-act="${idx}" rows="2" placeholder="Add a short remark" ${closed?'disabled':''}>${ojtState.remark||''}</textarea>` : ''}
     </div>
   </div>`;
@@ -1323,6 +1369,7 @@ function renderOjtTracker(intern, batch, containerEl, who, closed, onUpdate){
       const act = parseInt(box.dataset.act);
       intern.ojt[act].remark = box.value;
       await saveInterns();
+      onUpdate();
       showToast("Remark saved");
     });
   });
@@ -1615,7 +1662,7 @@ function renderRtlView(){
       <div class="rowflex" style="justify-content:space-between;">
         <div><button class="link-btn" style="font-size:13.5px;" data-batchid="${b.id}" data-target="rtl-batch-drilldown">${b.name}</button>
         <div class="helptext">${b.type} · RTL: ${b.rtl} · ${count} interns</div>
-        <div class="helptext">Start: ${b.start} → Close: ${b.close}</div></div>
+        <div class="helptext">Start: ${b.start} · OJT Start: ${b.ojtStart||'Not set'} → Close: ${b.close}</div></div>
         <div>${swatch(b.status==='Closed'?'delayed':'completed')} ${b.status==='Active'?`<button class="btn ghost small close-batch-btn" data-id="${b.id}">Close Now</button>`:''}</div>
       </div></div>`;
   }).join('');
@@ -1671,7 +1718,8 @@ function renderRtlView(){
 function journeySummary(intern){
   const ojtDone = ojtActivitiesDoneCount(intern);
   const stintDone = Object.values(intern.stint).filter(v=>v==='Completed').length;
-  return {ojtDone, ojtPct: ojtCompletionPct(intern), stintDone, stintPct: Math.round(stintDone/4*100)};
+  const stintTotal = Object.keys(intern.stint).length;
+  return {ojtDone, ojtPct: ojtCompletionPct(intern), stintDone, stintTotal, stintPct: stintTotal ? Math.round(stintDone/stintTotal*100) : 0};
 }
 
 function renderBatchDrilldown(batchId, targetElId, zoneFilter){
@@ -1693,7 +1741,7 @@ function renderBatchDrilldown(batchId, targetElId, zoneFilter){
         </div>
         <div class="isc-bars">
           <div class="isc-bar-item">OJT ${j.ojtDone}/6<div class="bar"><div style="width:${j.ojtPct}%;"></div></div></div>
-          <div class="isc-bar-item">Stint Tasks ${j.stintDone}/4<div class="bar"><div style="width:${j.stintPct}%;"></div></div></div>
+          <div class="isc-bar-item">Stint Tasks ${j.stintDone}/${j.stintTotal}<div class="bar"><div style="width:${j.stintPct}%;"></div></div></div>
           <div class="isc-bar-item">Buddy Rating<div style="margin-top:4px;font-size:13px;font-weight:700;color:var(--navy-2);">${bfAvg!==null ? bfAvg.toFixed(1)+'/5' : 'Pending'}</div></div>
           <div class="isc-bar-item">Overall Score<div class="score-link" data-score-idx="${idx}" style="margin-top:4px;font-size:13px;font-weight:700;color:var(--gold);">${overall!==null ? overall+'%' : 'Pending'}</div></div>
         </div>
@@ -1734,7 +1782,7 @@ function openInternModal(idx){
     <div class="grid cols-4">
       <div class="stat"><div class="num">${intern.buddyAssigned}</div><div class="lbl">Buddy Assigned</div></div>
       <div class="stat"><div class="num">${ojtActivitiesDoneCount(intern)}/6</div><div class="lbl">OJT Activities Completed</div></div>
-      <div class="stat"><div class="num">${Object.values(intern.stint).filter(v=>v==='Completed').length}/4</div><div class="lbl">Stint Tasks Completed</div></div>
+      <div class="stat"><div class="num">${Object.values(intern.stint).filter(v=>v==='Completed').length}/${Object.keys(intern.stint).length}</div><div class="lbl">Stint Tasks Completed</div></div>
       <div class="stat score-link" data-score-idx="${idx}" style="border-color:var(--gold);cursor:pointer;"><div class="num" style="color:var(--gold);">${overall!==null ? overall+'%' : '—'}</div><div class="lbl">Overall Blended Score (click for breakdown)</div></div>
     </div>
     ${intern.stintHighlights ? `<div class="highlight-box"><b>⭐ Overachievement / Highlights:</b> ${intern.stintHighlights}</div>` : ''}
@@ -1927,12 +1975,14 @@ document.getElementById('create-batch-btn').addEventListener('click', async ()=>
   const name = document.getElementById('b-name').value.trim();
   const type = document.getElementById('b-type').value;
   const start = document.getElementById('b-start').value;
+  const ojtStart = document.getElementById('b-ojtstart').value;
   const rtl = document.getElementById('b-rtl').value;
   if(!name || !start){ showToast("Enter batch name and start date"); return; }
-  batches.push({id:name, name, type, start, close: computeCloseDate(start, type), rtl, status:"Active"});
+  if(!ojtStart){ showToast("Please set the OJT Start Date — OJT day scheduling depends on it"); return; }
+  batches.push({id:name, name, type, start, ojtStart, close: computeCloseDate(start, type), rtl, status:"Active"});
   await saveBatches();
   renderRtlView();
-  document.getElementById('b-name').value=''; document.getElementById('b-start').value='';
+  document.getElementById('b-name').value=''; document.getElementById('b-start').value=''; document.getElementById('b-ojtstart').value='';
   showToast("Batch created: " + name);
 });
 
@@ -1977,7 +2027,7 @@ document.getElementById('add-intern-btn').addEventListener('click', async ()=>{
   const depotName = document.getElementById('f-depot').value.trim();
   if(!name || !empId || !batchId){ showToast("Enter intern name, Employee ID, and select a batch"); return; }
   interns.push({name, empId, batchId, buddyEmpId, buddyNameNote:"", subFunction, region, depotName:depotName||'—', completion:0, status:"progress",
-    buddyAssigned:"No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(4), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
+    buddyAssigned:"No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(getStintTasks(subFunction).length), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
     fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]});
   await saveInterns();
   renderRtlView();
@@ -1998,7 +2048,7 @@ document.getElementById('csv-upload').addEventListener('change', async (e)=>{
     const [name, empId, batchId, buddyEmpId, subFunction, region, depotName] = line.split(",").map(s=>s&&s.trim());
     if(name && empId){
       interns.push({name, empId, batchId:batchId||batches[0].id, buddyEmpId:buddyEmpId||'', buddyNameNote:"", subFunction:subFunction||'Retail Sales', region:region||'Maharashtra', depotName:depotName||'—',
-        completion:0, status:"progress", buddyAssigned:"No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(4), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
+        completion:0, status:"progress", buddyAssigned:"No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(getStintTasks(subFunction||'Retail Sales').length), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
         fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]});
       added++;
     }
@@ -2011,9 +2061,9 @@ document.getElementById('csv-upload').addEventListener('change', async (e)=>{
 function computeClosingReportData(batchId){
   const batch = batches.find(b=>b.id===batchId);
   const list = interns.filter(i=>i.batchId===batchId);
-  const totalOjt = 6, totalStint = 4;
+  const totalOjt = 6;
   const avgOjt = list.length ? Math.round(list.reduce((a,i)=>a+ojtActivitiesDoneCount(i),0)/(list.length*totalOjt)*100) : 0;
-  const avgStint = list.length ? Math.round(list.reduce((a,i)=>a+Object.values(i.stint).filter(v=>v==='Completed').length,0)/(list.length*totalStint)*100) : 0;
+  const avgStint = list.length ? Math.round(list.reduce((a,i)=>a+stintCompletionPct(i),0)/list.length) : 0;
   const rtlDone = list.filter(i=>i.rtl==='Completed').length;
   const fbRtlScores = list.filter(i=>i.fbRtl.submitted).flatMap(i=>Object.values(i.fbRtl.qual).filter(v=>v!==null));
   const avgFbRtl = fbRtlScores.length ? (fbRtlScores.reduce((a,c)=>a+c,0)/fbRtlScores.length).toFixed(1) : "—";
@@ -2027,18 +2077,19 @@ function computeClosingReportData(batchId){
   const internRows = list.map(i=>{
     const ojtDone = ojtActivitiesDoneCount(i);
     const stintDone = Object.values(i.stint).filter(v=>v==='Completed').length;
+    const stintTotal = Object.keys(i.stint).length;
     const overall = overallBlendedScore(i);
     const buddy = buddies.find(b=>b.empId===i.buddyEmpId);
-    const rec = (ojtDone===totalOjt && stintDone===totalStint) ? 'Certified'
+    const rec = (ojtDone===totalOjt && stintDone===stintTotal) ? 'Certified'
       : (ojtDone>=4) ? 'Extend' : 'Not Certified';
     return {name:i.name, empId:i.empId, subFunction:i.subFunction, region:i.region||'—', depotName:i.depotName||'—',
-      buddy: buddy?buddy.name:'—', ojtDone, totalOjt, stintDone, totalStint,
+      buddy: buddy?buddy.name:'—', ojtDone, totalOjt, stintDone, totalStint:stintTotal,
       marcScore: i.marcScore!==null?i.marcScore:'—', genAiScore: i.genAiScore!==null?i.genAiScore:'—',
       overall: overall!==null?overall+'%':'—', status:STATUS_LABEL[i.status]||i.status, recommendation:rec,
       highlights: i.stintHighlights||''};
   });
 
-  return {batch, list, totalOjt, totalStint, avgOjt, avgStint, rtlDone, avgFbRtl, avgFbBuddy, avgBuddyRating, avgOverall, atRisk, internRows};
+  return {batch, list, totalOjt, avgOjt, avgStint, rtlDone, avgFbRtl, avgFbBuddy, avgBuddyRating, avgOverall, atRisk, internRows};
 }
 
 document.getElementById('generate-report-btn').addEventListener('click', ()=>{
@@ -2195,6 +2246,81 @@ function renderBuddyPerfTable(tableBodyId, scopeInterns, regionValue){
     return `<tr><td>${bd.name}</td><td>${bd.region}</td><td>${mine.length}</td><td>${avgCompletion}%</td><td>${avgReceived}</td><td>${avgGiven}</td></tr>`;
   }).join('') || `<tr><td colspan="6" class="empty">No buddies currently guiding an intern${regionValue?' in '+regionValue:''}.</td></tr>`;
 }
+
+/* ================= STINT TASK TEMPLATES (RTL-defined) ================= */
+let currentStintTemplateDraft = []; // working copy while editing, keyed to the selected sub-function
+
+function loadStintTemplateDraft(subFunction){
+  // deep copy so edits don't mutate the live template/default until Save is clicked
+  currentStintTemplateDraft = JSON.parse(JSON.stringify(getStintTasks(subFunction)));
+  renderStintTemplateEditor();
+}
+function renderStintTemplateEditor(){
+  const el = document.getElementById('stint-template-editor');
+  el.innerHTML = currentStintTemplateDraft.map((t,i)=>`
+    <div class="stint-task-card">
+      <div class="rowflex">
+        <b style="font-size:12.5px;color:var(--ink-soft);">Task ${i+1}</b>
+        <button class="btn ghost small remove-stint-task-btn" data-idx="${i}" style="border-color:#B24A3C;color:#B24A3C;">Remove</button>
+      </div>
+      <label>Task Title</label>
+      <input type="text" class="stint-draft-title" data-idx="${i}" value="${t.title.replace(/"/g,'&quot;')}">
+      <label>Target</label>
+      <input type="text" class="stint-draft-target" data-idx="${i}" value="${(t.target||'').replace(/"/g,'&quot;')}">
+      <label>Task Notes <span class="helptext" style="display:inline;">(one per line)</span></label>
+      <textarea class="stint-draft-notes" data-idx="${i}" rows="3">${(t.notes||[]).join('\n')}</textarea>
+    </div>`).join('') || `<div class="empty">No tasks yet — click "+ Add Task" to start.</div>`;
+
+  el.querySelectorAll('.stint-draft-title').forEach(inp=>{
+    inp.addEventListener('change', ()=>{ currentStintTemplateDraft[parseInt(inp.dataset.idx)].title = inp.value; });
+  });
+  el.querySelectorAll('.stint-draft-target').forEach(inp=>{
+    inp.addEventListener('change', ()=>{ currentStintTemplateDraft[parseInt(inp.dataset.idx)].target = inp.value; });
+  });
+  el.querySelectorAll('.stint-draft-notes').forEach(inp=>{
+    inp.addEventListener('change', ()=>{ currentStintTemplateDraft[parseInt(inp.dataset.idx)].notes = inp.value.split('\n').map(s=>s.trim()).filter(Boolean); });
+  });
+  el.querySelectorAll('.remove-stint-task-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      currentStintTemplateDraft.splice(parseInt(btn.dataset.idx), 1);
+      renderStintTemplateEditor();
+    });
+  });
+}
+document.getElementById('stint-template-subfunction').addEventListener('change', (e)=>{
+  loadStintTemplateDraft(e.target.value);
+});
+document.getElementById('add-stint-task-btn').addEventListener('click', ()=>{
+  currentStintTemplateDraft.push({title:"New Task", target:"", notes:[]});
+  renderStintTemplateEditor();
+});
+document.getElementById('save-stint-template-btn').addEventListener('click', async ()=>{
+  const subFunction = document.getElementById('stint-template-subfunction').value;
+  if(!currentStintTemplateDraft.length){ showToast("Add at least one task before saving"); return; }
+  try{
+    const {error} = await sb.from('stint_templates').upsert([{sub_function: subFunction, data: currentStintTemplateDraft}], {onConflict:'sub_function'});
+    if(error) throw error;
+  }catch(e){
+    showDbError('Save stint template failed — has the stint_templates table been created in Supabase?', e);
+    return;
+  }
+  stintTemplates[subFunction] = JSON.parse(JSON.stringify(currentStintTemplateDraft));
+  showToast(`Stint task template saved for ${subFunction}`);
+});
+document.getElementById('reset-stint-template-btn').addEventListener('click', async ()=>{
+  const subFunction = document.getElementById('stint-template-subfunction').value;
+  if(!confirm(`Reset ${subFunction} to the default task list? This removes your customization.`)) return;
+  try{
+    const {error} = await sb.from('stint_templates').delete().eq('sub_function', subFunction);
+    if(error) throw error;
+  }catch(e){
+    showDbError('Reset stint template failed', e);
+    return;
+  }
+  delete stintTemplates[subFunction];
+  loadStintTemplateDraft(subFunction);
+  showToast(`${subFunction} reset to default tasks`);
+});
 
 /* ================= COORDINATOR VIEW ================= */
 function renderCoordinatorView(){
