@@ -46,6 +46,7 @@
   .gate-note{font-size:11.5px;color:var(--swatch-progress);margin-top:6px;font-style:italic;}
   .stint-task-card{background:#fff;border:1px solid var(--line);border-radius:9px;padding:14px;margin-bottom:12px;}
   .stint-task-card .rowflex{justify-content:space-between;align-items:center;}
+  .sf-chip{background:#F1F1EF;color:var(--ink-soft);font-size:11.5px;font-weight:600;padding:5px 12px;border-radius:20px;border:1px solid var(--line);}
 
   /* ---------- Header ---------- */
   header.top{background:var(--navy);color:#fff;padding:22px 28px 0;}
@@ -489,6 +490,14 @@
       </div>
 
       <div class="subview" id="rtl-interns">
+        <div class="card" style="margin-bottom:20px;">
+          <h3 style="margin-top:0;">Sub-Functions <span class="helptext" style="display:inline;">(add new job roles as they come up)</span></h3>
+          <div id="subfunction-chip-list" class="rowflex" style="margin-bottom:12px;"></div>
+          <div class="rowflex">
+            <input type="text" id="new-subfunction-input" placeholder="e.g. Digital Sales" style="max-width:260px;">
+            <button class="btn ghost small" id="add-subfunction-btn">+ Add Sub-Function</button>
+          </div>
+        </div>
         <div class="two-col">
           <div class="card">
             <h3 style="margin-top:0;">Add Intern Manually</h3>
@@ -497,10 +506,7 @@
             <label>Batch</label><select id="f-batch"></select>
             <label>Assign Buddy</label><select id="f-buddy"></select>
             <label>Sub-Function</label>
-            <select id="f-subfunction">
-              <option>Retail Sales</option><option>Distribution</option><option>Urban Market</option>
-              <option>Business Development</option><option>Prolinks</option><option>RPO</option>
-            </select>
+            <select id="f-subfunction"></select>
             <label>Region</label>
             <select id="f-region"></select>
             <label>Depot Name</label><input type="text" id="f-depot" placeholder="e.g. Pune Depot">
@@ -529,10 +535,7 @@
           <h3 style="margin-top:0;">Define Individual Stint Tasks per Sub-Function</h3>
           <p class="helptext">Changes here apply to newly created interns going forward. Interns already added keep the task list they were created with.</p>
           <label>Sub-Function</label>
-          <select id="stint-template-subfunction">
-            <option>Retail Sales</option><option>Distribution</option><option>Urban Market</option>
-            <option>Business Development</option><option>Prolinks</option><option>RPO</option>
-          </select>
+          <select id="stint-template-subfunction"></select>
           <div id="stint-template-editor" style="margin-top:16px;"></div>
           <div class="rowflex" style="margin-top:16px;justify-content:space-between;">
             <div class="rowflex">
@@ -623,10 +626,7 @@
     <label>Assigned Buddy</label>
     <select id="edit-buddy"></select>
     <label>Sub-Function</label>
-    <select id="edit-subfunction">
-      <option>Retail Sales</option><option>Distribution</option><option>Urban Market</option>
-      <option>Business Development</option><option>Prolinks</option><option>RPO</option>
-    </select>
+    <select id="edit-subfunction"></select>
     <label>Region</label>
     <input type="text" id="edit-region" placeholder="e.g. Maharashtra">
     <label>Depot Name</label>
@@ -752,6 +752,7 @@ const STINT_TASKS_DETAILED = [
 ];
 const GENERIC_PREFIX = {"Business Development":"BD","Prolinks":"Prolinks","RPO":"RPO"};
 const DETAILED_SUBFUNCTIONS = ["Retail Sales","Distribution","Urban Market"];
+let SUB_FUNCTIONS = ["Retail Sales","Distribution","Urban Market","Business Development","Prolinks","RPO"]; // extendable by RTL
 let stintTemplates = {}; // RTL-defined overrides, keyed by sub-function; loaded from Supabase
 
 function defaultStintTasksFor(subFunction){
@@ -990,6 +991,17 @@ async function loadAll(){
   }catch(e){
     // Non-critical: table may not exist yet if this feature hasn't been set up in Supabase. Fall back to defaults silently.
     stintTemplates = {};
+  }
+
+  try{
+    const {data: sfRows, error} = await sb.from('sub_functions').select('*');
+    if(error) throw error;
+    const base = ["Retail Sales","Distribution","Urban Market","Business Development","Prolinks","RPO"];
+    const custom = (sfRows||[]).map(r=>r.name);
+    SUB_FUNCTIONS = [...new Set([...base, ...custom])];
+  }catch(e){
+    // Non-critical: table may not exist yet. Fall back to the default six.
+    SUB_FUNCTIONS = ["Retail Sales","Distribution","Urban Market","Business Development","Prolinks","RPO"];
   }
 
   populateEntryBatchDropdown();
@@ -1656,15 +1668,27 @@ function renderRtlView(){
     `<optgroup label="${z}">${ZONES[z].map(st=>`<option value="${st}">${st}</option>`).join('')}</optgroup>`
   ).join('');
 
+  const sfOpts = SUB_FUNCTIONS.map(sf=>`<option>${sf}</option>`).join('');
+  document.getElementById('f-subfunction').innerHTML = sfOpts;
+  document.getElementById('stint-template-subfunction').innerHTML = sfOpts;
+  document.getElementById('subfunction-chip-list').innerHTML = SUB_FUNCTIONS.map(sf=>`<span class="sf-chip">${sf}</span>`).join('');
+
   document.getElementById('rtl-batch-list').innerHTML = batches.map(b=>{
     const count = interns.filter(i=>i.batchId===b.id).length;
     return `<div class="card" style="margin-bottom:10px;padding:12px 14px;">
       <div class="rowflex" style="justify-content:space-between;">
         <div><button class="link-btn" style="font-size:13.5px;" data-batchid="${b.id}" data-target="rtl-batch-drilldown">${b.name}</button>
         <div class="helptext">${b.type} · RTL: ${b.rtl} · ${count} interns</div>
-        <div class="helptext">Start: ${b.start} · OJT Start: ${b.ojtStart||'Not set'} → Close: ${b.close}</div></div>
+        <div class="helptext">Start: ${b.start} → Close: ${b.close}</div></div>
         <div>${swatch(b.status==='Closed'?'delayed':'completed')} ${b.status==='Active'?`<button class="btn ghost small close-batch-btn" data-id="${b.id}">Close Now</button>`:''}</div>
-      </div></div>`;
+      </div>
+      <div class="rowflex" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);align-items:center;">
+        <label style="margin:0;font-size:11.5px;">OJT Start Date</label>
+        <input type="date" class="ojt-start-input" data-id="${b.id}" value="${b.ojtStart||''}" style="width:160px;" ${b.status==='Closed'?'disabled':''}>
+        <button class="btn ghost small save-ojt-start-btn" data-id="${b.id}" ${b.status==='Closed'?'disabled':''}>Save</button>
+        ${!b.ojtStart ? '<span class="helptext" style="color:#B24A3C;">Not set — OJT dates currently fall back to batch Start Date</span>' : ''}
+      </div>
+    </div>`;
   }).join('');
   document.querySelectorAll('.close-batch-btn').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
@@ -1673,6 +1697,17 @@ function renderRtlView(){
       await saveBatches();
       renderRtlView();
       showToast(b.name + " closed. All entries now read-only.");
+    });
+  });
+  document.querySelectorAll('.save-ojt-start-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const b = batches.find(x=>x.id===btn.dataset.id);
+      const input = document.querySelector(`.ojt-start-input[data-id="${btn.dataset.id}"]`);
+      if(!input.value){ showToast("Pick a date first"); return; }
+      b.ojtStart = input.value;
+      await saveBatches();
+      renderRtlView();
+      showToast(`OJT Start Date updated for ${b.name}`);
     });
   });
   document.querySelectorAll('#rtl-batch-list .link-btn').forEach(btn=>{
@@ -1861,7 +1896,7 @@ function openInternEditModal(idx){
   document.getElementById('intern-edit-meta').textContent = `${intern.name} (${intern.empId}) · Batch: ${batch?batch.name:'—'}`;
   document.getElementById('edit-buddy').innerHTML = `<option value="">— No Buddy Assigned —</option>` +
     buddies.map(b=>`<option value="${b.empId}" ${b.empId===intern.buddyEmpId?'selected':''}>${b.name} (${b.empId})</option>`).join('');
-  document.getElementById('edit-subfunction').value = intern.subFunction;
+  document.getElementById('edit-subfunction').innerHTML = SUB_FUNCTIONS.map(sf=>`<option ${sf===intern.subFunction?'selected':''}>${sf}</option>`).join('');
   document.getElementById('edit-region').value = intern.region || '';
   document.getElementById('edit-depot').value = intern.depotName && intern.depotName!=='—' ? intern.depotName : '';
   document.getElementById('edit-ojt-unlock').checked = !!intern.ojtUnlocked;
@@ -1984,6 +2019,24 @@ document.getElementById('create-batch-btn').addEventListener('click', async ()=>
   renderRtlView();
   document.getElementById('b-name').value=''; document.getElementById('b-start').value=''; document.getElementById('b-ojtstart').value='';
   showToast("Batch created: " + name);
+});
+
+document.getElementById('add-subfunction-btn').addEventListener('click', async ()=>{
+  const input = document.getElementById('new-subfunction-input');
+  const name = input.value.trim();
+  if(!name){ showToast("Enter a sub-function name"); return; }
+  if(SUB_FUNCTIONS.some(sf=>sf.toLowerCase()===name.toLowerCase())){ showToast("That sub-function already exists"); return; }
+  try{
+    const {error} = await sb.from('sub_functions').upsert([{name}], {onConflict:'name'});
+    if(error) throw error;
+  }catch(e){
+    showDbError('Add sub-function failed — has the sub_functions table been created in Supabase?', e);
+    return;
+  }
+  SUB_FUNCTIONS.push(name);
+  renderRtlView();
+  input.value = '';
+  showToast(`"${name}" added — now selectable when adding or editing interns`);
 });
 
 document.getElementById('add-buddy-btn').addEventListener('click', async ()=>{
