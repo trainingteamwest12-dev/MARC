@@ -476,6 +476,7 @@
           </div>
           <div class="card">
             <h3 style="margin-top:0;">Buddy Pool <span class="helptext" style="display:inline;">(persists across batches)</span></h3>
+            <input type="text" id="rtl-buddy-search" placeholder="Search by name or Employee ID…" style="margin-bottom:10px;">
             <div style="max-height:520px;overflow:auto;">
               <table><thead><tr><th>Name</th><th>Emp ID</th><th>Designation</th><th>Region</th><th>Depot</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody id="rtl-buddy-table"></tbody></table>
@@ -523,6 +524,7 @@
         </div>
         <section>
           <h3>All Interns — All Batches <span class="helptext" style="display:inline;">(click a name for full journey detail)</span></h3>
+          <input type="text" id="rtl-intern-search" placeholder="Search by name, Employee ID, batch, or Buddy…" style="margin-bottom:10px;max-width:420px;">
           <div class="card" style="padding:0;">
             <table><thead><tr><th>Intern</th><th>Emp ID</th><th>Batch</th><th>Buddy</th><th>Sub-Function</th><th>Status</th><th>Completion</th><th>Buddy Rating</th><th>Overall Score</th><th>Actions</th></tr></thead>
             <tbody id="rtl-intern-table"></tbody></table>
@@ -564,6 +566,11 @@
     <div class="view" id="view-head">
       <h2 class="pagehead" id="head-pagehead">Regional Dashboard</h2>
       <p class="sub" id="head-subhead">Read-only overview across all batches</p>
+      <div class="card" style="margin-bottom:20px;">
+        <label>Search Intern or Buddy by Name / ID</label>
+        <input type="text" id="head-search-input" placeholder="Start typing a name or ID…">
+        <div id="head-search-results" style="margin-top:10px;"></div>
+      </div>
       <div class="grid cols-4" id="head-stats"></div>
       <section><h3>Batch-wise Overview <span class="helptext" style="display:inline;">(click a batch name for an at-a-glance report)</span></h3>
         <div class="card" style="padding:0;"><table><thead><tr><th>Batch</th><th>Type</th><th>Status</th><th>Total</th><th>Completed</th><th>Delayed</th></tr></thead><tbody id="head-batch-table"></tbody></table></div>
@@ -1714,13 +1721,8 @@ function renderRtlView(){
     btn.addEventListener('click', ()=> renderBatchDrilldown(btn.dataset.batchid, btn.dataset.target));
   });
 
-  document.getElementById('rtl-buddy-table').innerHTML = buddies.map((b,idx)=>`
-    <tr><td>${b.name}</td><td>${b.empId}</td><td>${b.designation}</td><td>${b.region}</td><td>${b.depotName||'—'}</td><td>${swatch(b.status==='Active'?'completed':'pending')}</td>
-    <td><button class="btn ghost small edit-buddy-btn" data-idx="${idx}">Edit</button></td></tr>
-  `).join('') || `<tr><td colspan="7" class="empty">No buddies yet.</td></tr>`;
-  document.querySelectorAll('#rtl-buddy-table .edit-buddy-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=> openBuddyEditModal(parseInt(btn.dataset.idx)));
-  });
+  renderRtlBuddyTable();
+  document.getElementById('rtl-buddy-search').oninput = renderRtlBuddyTable;
 
   const rtlBuddyFilterSel = document.getElementById('rtl-buddy-region-filter');
   rtlBuddyFilterSel.innerHTML = `<option value="">All Regions</option>` +
@@ -1728,7 +1730,33 @@ function renderRtlView(){
   rtlBuddyFilterSel.onchange = ()=> renderBuddyPerfTable('rtl-buddy-perf-table', interns, rtlBuddyFilterSel.value);
   renderBuddyPerfTable('rtl-buddy-perf-table', interns, rtlBuddyFilterSel.value);
 
-  document.getElementById('rtl-intern-table').innerHTML = interns.map(i=>{
+  renderRtlInternTable();
+  document.getElementById('rtl-intern-search').oninput = renderRtlInternTable;
+}
+
+function renderRtlBuddyTable(){
+  const q = (document.getElementById('rtl-buddy-search').value || '').trim().toLowerCase();
+  const filtered = q ? buddies.filter(b=> b.name.toLowerCase().includes(q) || b.empId.toLowerCase().includes(q)) : buddies;
+  document.getElementById('rtl-buddy-table').innerHTML = filtered.map(b=>{
+    const idx = buddies.indexOf(b);
+    return `<tr><td>${b.name}</td><td>${b.empId}</td><td>${b.designation}</td><td>${b.region}</td><td>${b.depotName||'—'}</td><td>${swatch(b.status==='Active'?'completed':'pending')}</td>
+    <td><button class="btn ghost small edit-buddy-btn" data-idx="${idx}">Edit</button></td></tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty">${q ? 'No buddies match "'+q+'".' : 'No buddies yet.'}</td></tr>`;
+  document.querySelectorAll('#rtl-buddy-table .edit-buddy-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> openBuddyEditModal(parseInt(btn.dataset.idx)));
+  });
+}
+
+function renderRtlInternTable(){
+  const q = (document.getElementById('rtl-intern-search').value || '').trim().toLowerCase();
+  const filtered = !q ? interns : interns.filter(i=>{
+    const batch = batches.find(b=>b.id===i.batchId);
+    const buddy = buddies.find(b=>b.empId===i.buddyEmpId);
+    return i.name.toLowerCase().includes(q) || i.empId.toLowerCase().includes(q)
+      || (batch && batch.name.toLowerCase().includes(q))
+      || (buddy && buddy.name.toLowerCase().includes(q));
+  });
+  document.getElementById('rtl-intern-table').innerHTML = filtered.map(i=>{
     const idx = interns.indexOf(i);
     const batch = batches.find(b=>b.id===i.batchId);
     const buddy = buddies.find(b=>b.empId===i.buddyEmpId);
@@ -1737,7 +1765,7 @@ function renderRtlView(){
     return `<tr><td><button class="link-btn" data-idx="${idx}">${i.name}</button></td><td>${i.empId}</td><td>${batch?batch.name:'—'}</td><td>${buddy?buddy.name:'—'}</td><td>${i.subFunction}</td><td>${swatch(i.status)}</td>
     <td><div class="bar"><div style="width:${i.completion}%;"></div></div></td><td>${bfAvg!==null ? bfAvg.toFixed(1)+'/5' : '<span class="helptext">Pending</span>'}</td><td>${overall!==null ? '<b class="score-link" data-score-idx="'+idx+'">'+overall+'%</b>' : '<span class="helptext">Pending</span>'}</td>
     <td><button class="btn ghost small edit-intern-btn" data-idx="${idx}">Edit</button></td></tr>`;
-  }).join('') || `<tr><td colspan="10" class="empty">No interns yet.</td></tr>`;
+  }).join('') || `<tr><td colspan="10" class="empty">${q ? 'No interns match "'+q+'".' : 'No interns yet.'}</td></tr>`;
   document.querySelectorAll('#rtl-intern-table .link-btn').forEach(btn=>{
     btn.addEventListener('click', ()=> openInternModal(parseInt(btn.dataset.idx)));
   });
@@ -2240,6 +2268,47 @@ function downloadCsv(content, filename){
 function renderHeadView(zoneFilter){
   const zoneStates = zoneFilter ? ZONES[zoneFilter] : null;
   const scopedInterns = zoneStates ? interns.filter(i=>zoneStates.includes(i.region)) : interns;
+  const scopedBuddiesForSearch = zoneStates ? buddies.filter(b=>zoneStates.includes(b.region)) : buddies;
+
+  const searchInput = document.getElementById('head-search-input');
+  const runHeadSearch = ()=>{
+    const q = (searchInput.value || '').trim().toLowerCase();
+    const resultsEl = document.getElementById('head-search-results');
+    if(!q){ resultsEl.innerHTML = ''; return; }
+    const matchedInterns = scopedInterns.filter(i=>i.name.toLowerCase().includes(q) || i.empId.toLowerCase().includes(q)).slice(0,8);
+    const matchedBuddies = scopedBuddiesForSearch.filter(b=>b.name.toLowerCase().includes(q) || b.empId.toLowerCase().includes(q)).slice(0,8);
+    if(!matchedInterns.length && !matchedBuddies.length){
+      resultsEl.innerHTML = `<div class="empty">No matches for "${q}".</div>`;
+      return;
+    }
+    let html = '';
+    matchedInterns.forEach(i=>{
+      const idx = interns.indexOf(i);
+      const batch = batches.find(b=>b.id===i.batchId);
+      html += `<div class="mini-row" style="cursor:pointer;" data-intern-idx="${idx}"><span><span class="swatch s-progress" style="margin-right:6px;">Intern</span>${i.name} — ${i.empId} · ${batch?batch.name:'—'}</span>${swatch(i.status)}</div>`;
+    });
+    matchedBuddies.forEach(b=>{
+      const idx = buddies.indexOf(b);
+      const mine = interns.filter(x=>x.buddyEmpId===b.empId);
+      html += `<div class="mini-row" style="cursor:pointer;" data-buddy-idx="${idx}"><span><span class="swatch s-completed" style="margin-right:6px;">Buddy</span>${b.name} — ${b.empId} · ${mine.length} intern(s) guided</span><span class="helptext">${b.region}</span></div>`;
+    });
+    resultsEl.innerHTML = html;
+    resultsEl.querySelectorAll('[data-intern-idx]').forEach(el=>{
+      el.addEventListener('click', ()=> openInternModal(parseInt(el.dataset.internIdx)));
+    });
+    resultsEl.querySelectorAll('[data-buddy-idx]').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const b = buddies[parseInt(el.dataset.buddyIdx)];
+        const mine = interns.filter(x=>x.buddyEmpId===b.empId);
+        const avgCompletion = mine.length ? Math.round(mine.reduce((a,x)=>a+x.completion,0)/mine.length) : 0;
+        const bfAvg2 = mine.map(x=>buddyFbAvg(x)).filter(v=>v!==null);
+        const avgGiven = bfAvg2.length ? (bfAvg2.reduce((a,c)=>a+c,0)/bfAvg2.length).toFixed(1)+'/5' : 'Pending';
+        showToast(`${b.name}: ${mine.length} intern(s) · ${avgCompletion}% avg completion · ${avgGiven} avg rating given`);
+      });
+    });
+  };
+  searchInput.oninput = runHeadSearch;
+  runHeadSearch();
 
   document.getElementById('head-pagehead').textContent = zoneFilter ? `Regional Dashboard — ${zoneFilter}` : "Regional Dashboard — Pan India (TCH)";
   document.getElementById('head-subhead').textContent = zoneFilter
