@@ -505,7 +505,9 @@
             <label>Intern Name</label><input type="text" id="f-name" placeholder="e.g. Karan Mehta">
             <label>Employee ID</label><input type="text" id="f-empid" placeholder="e.g. INT1050">
             <label>Batch</label><select id="f-batch"></select>
-            <label>Assign Buddy</label><select id="f-buddy"></select>
+            <label>Assign Buddy</label>
+            <input type="text" id="f-buddy" list="f-buddy-list" placeholder="Type name or Employee ID…" autocomplete="off">
+            <datalist id="f-buddy-list"></datalist>
             <label>Sub-Function</label>
             <select id="f-subfunction"></select>
             <label>Region</label>
@@ -631,7 +633,8 @@
     <h2>Edit Intern</h2>
     <p class="sub" id="intern-edit-meta"></p>
     <label>Assigned Buddy</label>
-    <select id="edit-buddy"></select>
+    <input type="text" id="edit-buddy" list="edit-buddy-list" placeholder="Type name or Employee ID, or leave blank for none" autocomplete="off">
+    <datalist id="edit-buddy-list"></datalist>
     <label>Sub-Function</label>
     <select id="edit-subfunction"></select>
     <label>Region</label>
@@ -857,6 +860,24 @@ function defaultBuddyFbOnIntern(){
   for(let i=0;i<BUDDY_COMMON_PARAMS.length;i++) o.common[i]=null;
   return o;
 }
+/* Resolves a typed "Name (EmpID)" string — or a bare name/Employee ID — back to an actual Buddy Employee ID.
+   Used by the searchable Buddy pickers in Add Intern and Edit Intern. Returns '' for blank input (no buddy),
+   or null if the text doesn't match anyone in the pool. */
+function resolveBuddyEmpId(typed){
+  const val = (typed || '').trim();
+  if(!val) return '';
+  const parenMatch = val.match(/\(([^()]+)\)\s*$/);
+  if(parenMatch){
+    const candidateId = parenMatch[1].trim();
+    if(buddies.some(b=>b.empId.toLowerCase()===candidateId.toLowerCase())) return candidateId;
+  }
+  const byId = buddies.find(b=>b.empId.toLowerCase()===val.toLowerCase());
+  if(byId) return byId.empId;
+  const byName = buddies.find(b=>b.name.toLowerCase()===val.toLowerCase());
+  if(byName) return byName.empId;
+  return null;
+}
+
 function buddyFbAvg(intern){
   if(!intern.buddyFbOnIntern || !intern.buddyFbOnIntern.submitted) return null;
   const vals = [...Object.values(intern.buddyFbOnIntern.ojt), ...Object.values(intern.buddyFbOnIntern.common)].filter(v=>v!==null);
@@ -1410,7 +1431,7 @@ function renderInternView(){
   else if(intern.marcScore!==null) currentIdx = 4;
   else if(ojtActivitiesDoneCount(intern) >= 6) currentIdx = 3;
   else if(intern.rtl === 'Completed') currentIdx = 2;
-  else if(intern.buddyAssigned === 'Yes') currentIdx = 1;
+  else if(intern.buddyEmpId || intern.buddyAssigned === 'Yes') currentIdx = 1;
   document.getElementById('intern-flow').innerHTML = steps.map((s,i)=>{
     const cls = i < currentIdx ? "done" : (i === currentIdx ? "current" : "");
     const arrow = i < steps.length-1 ? '<span class="arrow">→</span>' : '';
@@ -1422,14 +1443,33 @@ function renderInternView(){
   rtlSel.className = "status-select " + (intern.rtl === "Completed" ? "st-completed" : "st-notstarted");
   rtlSel.disabled = closed;
 
+  // Once RTL has actually assigned a Buddy (intern.buddyEmpId is set), that's the source of truth —
+  // the intern's own Yes/No toggle is locked so it can never desync from or overwrite RTL's assignment.
   const baSel = document.getElementById('intern-buddy-assigned');
-  baSel.value = intern.buddyAssigned;
-  baSel.className = intern.buddyAssigned === "Yes" ? "assign-yes" : "assign-no";
-  baSel.disabled = closed;
+  const rtlHasAssignedBuddy = !!intern.buddyEmpId;
+  const assignedBuddy = buddies.find(b=>b.empId===intern.buddyEmpId);
+  if(rtlHasAssignedBuddy){
+    baSel.innerHTML = `<option value="Yes" selected>Yes</option>`;
+    baSel.value = "Yes";
+    baSel.className = "assign-yes";
+    baSel.disabled = true;
+    baSel.title = "Set by RTL — cannot be changed here";
+  }else{
+    baSel.innerHTML = `<option value="No">No</option><option value="Yes">Yes</option>`;
+    baSel.value = intern.buddyAssigned;
+    baSel.className = intern.buddyAssigned === "Yes" ? "assign-yes" : "assign-no";
+    baSel.disabled = closed;
+    baSel.title = "";
+  }
   const nameBox = document.getElementById('intern-buddy-name-box');
-  nameBox.classList.toggle('hidden', intern.buddyAssigned !== 'Yes');
-  document.getElementById('intern-buddy-name').value = intern.buddyNameNote || '';
-  document.getElementById('intern-buddy-name').disabled = closed;
+  nameBox.classList.toggle('hidden', !(rtlHasAssignedBuddy || intern.buddyAssigned === 'Yes'));
+  const nameInput = document.getElementById('intern-buddy-name');
+  if(rtlHasAssignedBuddy && assignedBuddy && !intern.buddyNameNote){
+    nameInput.value = assignedBuddy.name;
+  }else{
+    nameInput.value = intern.buddyNameNote || '';
+  }
+  nameInput.disabled = closed || rtlHasAssignedBuddy;
 
   renderOjtTracker(intern, batch, document.getElementById('intern-ojt-list'), 'iojt', closed, renderInternView);
 
@@ -1670,7 +1710,7 @@ function renderRtlView(){
   const batchOpts = batches.map(b=>`<option value="${b.id}">${b.name} ${b.status==='Closed'?'(Closed)':''}</option>`).join('');
   document.getElementById('f-batch').innerHTML = batchOpts;
   document.getElementById('report-batch-select').innerHTML = batchOpts;
-  document.getElementById('f-buddy').innerHTML = buddies.map(b=>`<option value="${b.empId}">${b.name} (${b.empId})</option>`).join('');
+  document.getElementById('f-buddy-list').innerHTML = buddies.map(b=>`<option value="${b.name} (${b.empId})">`).join('');
   document.getElementById('f-region').innerHTML = ZONE_NAMES.map(z=>
     `<optgroup label="${z}">${ZONES[z].map(st=>`<option value="${st}">${st}</option>`).join('')}</optgroup>`
   ).join('');
@@ -1843,7 +1883,7 @@ function openInternModal(idx){
     <h2>${intern.name}</h2>
     <p class="sub">Emp ID: ${intern.empId} · Batch: ${batch?batch.name:'—'} · Sub-Function: ${intern.subFunction} · Region: ${intern.region||'—'} · Depot: ${intern.depotName||'—'} · Buddy: ${intern.buddyNameNote || (buddy?buddy.name:'Not assigned')} · Classroom Training: ${intern.rtl}</p>
     <div class="grid cols-4">
-      <div class="stat"><div class="num">${intern.buddyAssigned}</div><div class="lbl">Buddy Assigned</div></div>
+      <div class="stat"><div class="num">${intern.buddyEmpId ? 'Yes' : (intern.buddyAssigned === 'Yes' ? 'Yes*' : 'No')}</div><div class="lbl">Buddy Assigned${!intern.buddyEmpId && intern.buddyAssigned==='Yes' ? ' (*self-reported, not yet set by RTL)' : ''}</div></div>
       <div class="stat"><div class="num">${ojtActivitiesDoneCount(intern)}/6</div><div class="lbl">OJT Activities Completed</div></div>
       <div class="stat"><div class="num">${Object.values(intern.stint).filter(v=>v==='Completed').length}/${Object.keys(intern.stint).length}</div><div class="lbl">Stint Tasks Completed</div></div>
       <div class="stat score-link" data-score-idx="${idx}" style="border-color:var(--gold);cursor:pointer;"><div class="num" style="color:var(--gold);">${overall!==null ? overall+'%' : '—'}</div><div class="lbl">Overall Blended Score (click for breakdown)</div></div>
@@ -1922,8 +1962,9 @@ function openInternEditModal(idx){
   const batch = batches.find(b=>b.id===intern.batchId);
 
   document.getElementById('intern-edit-meta').textContent = `${intern.name} (${intern.empId}) · Batch: ${batch?batch.name:'—'}`;
-  document.getElementById('edit-buddy').innerHTML = `<option value="">— No Buddy Assigned —</option>` +
-    buddies.map(b=>`<option value="${b.empId}" ${b.empId===intern.buddyEmpId?'selected':''}>${b.name} (${b.empId})</option>`).join('');
+  document.getElementById('edit-buddy-list').innerHTML = buddies.map(b=>`<option value="${b.name} (${b.empId})">`).join('');
+  const currentBuddy = buddies.find(b=>b.empId===intern.buddyEmpId);
+  document.getElementById('edit-buddy').value = currentBuddy ? `${currentBuddy.name} (${currentBuddy.empId})` : '';
   document.getElementById('edit-subfunction').innerHTML = SUB_FUNCTIONS.map(sf=>`<option ${sf===intern.subFunction?'selected':''}>${sf}</option>`).join('');
   document.getElementById('edit-region').value = intern.region || '';
   document.getElementById('edit-depot').value = intern.depotName && intern.depotName!=='—' ? intern.depotName : '';
@@ -1941,7 +1982,9 @@ document.getElementById('intern-edit-overlay').addEventListener('click', (e)=>{
 document.getElementById('save-intern-edit-btn').addEventListener('click', async ()=>{
   if(editFocusIdx===null) return;
   const intern = interns[editFocusIdx];
-  const newBuddyEmpId = document.getElementById('edit-buddy').value;
+  const buddyInput = document.getElementById('edit-buddy');
+  const newBuddyEmpId = resolveBuddyEmpId(buddyInput.value);
+  if(newBuddyEmpId === null){ showToast(`"${buddyInput.value}" doesn't match anyone in the Buddy Pool — pick a suggestion from the list, or clear the field for none`); return; }
   const buddyChanged = newBuddyEmpId !== intern.buddyEmpId;
   intern.buddyEmpId = newBuddyEmpId;
   intern.subFunction = document.getElementById('edit-subfunction').value;
@@ -2102,17 +2145,19 @@ document.getElementById('add-intern-btn').addEventListener('click', async ()=>{
   const name = document.getElementById('f-name').value.trim();
   const empId = document.getElementById('f-empid').value.trim();
   const batchId = document.getElementById('f-batch').value;
-  const buddyEmpId = document.getElementById('f-buddy').value;
   const subFunction = document.getElementById('f-subfunction').value;
   const region = document.getElementById('f-region').value;
   const depotName = document.getElementById('f-depot').value.trim();
   if(!name || !empId || !batchId){ showToast("Enter intern name, Employee ID, and select a batch"); return; }
+  const buddyInput = document.getElementById('f-buddy');
+  const buddyEmpId = resolveBuddyEmpId(buddyInput.value);
+  if(buddyEmpId === null){ showToast(`"${buddyInput.value}" doesn't match anyone in the Buddy Pool — pick a suggestion from the list, or leave it blank`); return; }
   interns.push({name, empId, batchId, buddyEmpId, buddyNameNote:"", subFunction, region, depotName:depotName||'—', completion:0, status:"progress",
-    buddyAssigned:"No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(getStintTasks(subFunction).length), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
+    buddyAssigned: buddyEmpId ? "Yes" : "No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(getStintTasks(subFunction).length), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
     fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]});
   await saveInterns();
   renderRtlView();
-  ['f-name','f-empid','f-depot'].forEach(id=>document.getElementById(id).value='');
+  ['f-name','f-empid','f-depot','f-buddy'].forEach(id=>document.getElementById(id).value='');
   showToast(name + " added to batch");
 });
 
@@ -2129,7 +2174,7 @@ document.getElementById('csv-upload').addEventListener('change', async (e)=>{
     const [name, empId, batchId, buddyEmpId, subFunction, region, depotName] = line.split(",").map(s=>s&&s.trim());
     if(name && empId){
       interns.push({name, empId, batchId:batchId||batches[0].id, buddyEmpId:buddyEmpId||'', buddyNameNote:"", subFunction:subFunction||'Retail Sales', region:region||'Maharashtra', depotName:depotName||'—',
-        completion:0, status:"progress", buddyAssigned:"No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(getStintTasks(subFunction||'Retail Sales').length), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
+        completion:0, status:"progress", buddyAssigned: buddyEmpId ? "Yes" : "No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(getStintTasks(subFunction||'Retail Sales').length), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
         fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]});
       added++;
     }
