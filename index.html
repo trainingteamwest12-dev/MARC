@@ -844,8 +844,13 @@ function ojtActivitiesDoneCount(intern){
 }
 function stintCompletionPct(intern){
   const total = Object.keys(intern.stint).length;
-  const completed = Object.values(intern.stint).filter(v=>v==='Completed').length;
+  const completed = Object.values(intern.stint).filter(v=>v.status==='Completed').length;
   return total ? Math.round(completed/total*100) : 0;
+}
+function defaultStintState(count){
+  const o = {};
+  for(let i=0;i<count;i++) o[i] = {status:"Not Completed", detail:"", verification:"Not Verified"};
+  return o;
 }
 
 const BUDDY_COMMON_PARAMS = [
@@ -924,10 +929,10 @@ const SEED_BUDDIES = [
   {name:"Vikram Rao", empId:"BUD2203", designation:"Area Sales Manager", region:"C4", depotName:"Indore Depot", status:"Active"}
 ];
 const SEED_INTERNS = [
-  {name:"Rahul Deshmukh", empId:"INT1001", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2201", buddyNameNote:"Sanjay Kulkarni", subFunction:"Retail Sales", region:"W1", depotName:"Pune Depot", completion:55, status:"progress", buddyAssigned:"Yes", rtl:"Completed", ojt:defaultOjtState(), stint:defaultStatusMap(4), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false, fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[{text:"Buddy Sanjay Kulkarni assigned to you", ts:Date.now()-6*86400000}]},
-  {name:"Neha Patil", empId:"INT1002", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2201", buddyNameNote:"Sanjay Kulkarni", subFunction:"Urban Market", region:"W2", depotName:"Panaji Depot", completion:30, status:"progress", buddyAssigned:"Yes", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(4), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false, fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]},
-  {name:"Karan Mehta", empId:"INT1003", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2202", buddyNameNote:"", subFunction:"Business Development", region:"N1", depotName:"Ahmedabad Depot", completion:15, status:"progress", buddyAssigned:"No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(4), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false, fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]},
-  {name:"Devika Rao", empId:"INT0901", batchId:"WEST-OTR-2026-01", buddyEmpId:"BUD2203", buddyNameNote:"Vikram Rao", subFunction:"Distribution", region:"C4", depotName:"Indore Depot", completion:100, status:"completed", buddyAssigned:"Yes", rtl:"Completed", ojt:defaultOjtState(), stint:defaultStatusMap(4), stintHighlights:"", marcScore:82, genAiScore:78, ojtUnlocked:false, fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]}
+  {name:"Rahul Deshmukh", empId:"INT1001", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2201", buddyNameNote:"Sanjay Kulkarni", subFunction:"Retail Sales", region:"W1", depotName:"Pune Depot", completion:55, status:"progress", buddyAssigned:"Yes", rtl:"Completed", ojt:defaultOjtState(), stint:defaultStintState(4), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false, fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[{text:"Buddy Sanjay Kulkarni assigned to you", ts:Date.now()-6*86400000}]},
+  {name:"Neha Patil", empId:"INT1002", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2201", buddyNameNote:"Sanjay Kulkarni", subFunction:"Urban Market", region:"W2", depotName:"Panaji Depot", completion:30, status:"progress", buddyAssigned:"Yes", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStintState(4), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false, fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]},
+  {name:"Karan Mehta", empId:"INT1003", batchId:"WEST-SIB-2026-01", buddyEmpId:"BUD2202", buddyNameNote:"", subFunction:"Business Development", region:"N1", depotName:"Ahmedabad Depot", completion:15, status:"progress", buddyAssigned:"No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStintState(4), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false, fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]},
+  {name:"Devika Rao", empId:"INT0901", batchId:"WEST-OTR-2026-01", buddyEmpId:"BUD2203", buddyNameNote:"Vikram Rao", subFunction:"Distribution", region:"C4", depotName:"Indore Depot", completion:100, status:"completed", buddyAssigned:"Yes", rtl:"Completed", ojt:defaultOjtState(), stint:defaultStintState(4), stintHighlights:"", marcScore:82, genAiScore:78, ojtUnlocked:false, fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]}
 ];
 
 let batches = [], buddies = [], interns = [];
@@ -1002,6 +1007,15 @@ async function loadAll(){
               Object.keys(i.ojt[idx].items).forEach(k=>{ i.ojt[idx].items[k] = 'Completed'; });
               i.ojt[idx].status = 'Completed';
             }
+          });
+        }
+        // migrate old flat Stint status map ("Completed"/"Not Completed" per task) to the new {status, detail, verification} structure
+        const firstStint = i.stint && i.stint[0];
+        if(firstStint && typeof firstStint === 'string'){
+          const oldStint = i.stint;
+          i.stint = {};
+          Object.keys(oldStint).forEach(idx=>{
+            i.stint[idx] = {status: oldStint[idx], detail:"", verification:"Not Verified"};
           });
         }
       });
@@ -1415,6 +1429,60 @@ function renderOjtTracker(intern, batch, containerEl, who, closed, onUpdate){
   });
 }
 
+/* ================= INDIVIDUAL STINT TASK TRACKER (intern-side: status + completion details) ================= */
+function stintTaskBlockHtml(task, idx, st, who, closed){
+  const locked = st.verification === 'Verified'; // once Buddy verifies, intern can no longer edit status or details
+  const showDetailBox = st.status === 'Completed';
+  return `<div class="activity">
+    <div class="activity-head" data-toggle="${who}-stint-${idx}">
+      <div class="activity-title"><span class="activity-num">${idx+1}</span>${task.title}</div>
+      <div class="activity-right">
+        <select class="status-select ${TASK_CLASS[st.status]}" data-idx="${idx}" data-role="stint-status" ${(closed||locked)?'disabled':''}>
+          <option value="Not Completed" ${st.status==='Not Completed'?'selected':''}>Not Completed</option>
+          <option value="In Progress" ${st.status==='In Progress'?'selected':''}>In Progress</option>
+          <option value="Completed" ${st.status==='Completed'?'selected':''}>Completed</option>
+        </select>
+        <span class="chevron" id="chev-${who}-stint-${idx}">▶</span>
+      </div>
+    </div>
+    <div class="activity-body" id="${who}-stint-${idx}">
+      ${task.target ? `<div class="activity-target">Target: ${task.target}</div>` : ''}
+      <ul>${(task.notes||[]).map(p=>`<li>${p}</li>`).join('')}</ul>
+      ${showDetailBox ? `
+        <label style="margin-top:12px;">Task Completion Details ${!st.detail?'<span style="color:#B24A3C;">(required — your Buddy needs this to verify)</span>':''}</label>
+        <textarea class="stint-detail-box" data-idx="${idx}" rows="3" placeholder="e.g. Dealer name &amp; dealer code, contractor name, products introduced — whatever confirms this was actually done" ${(closed||locked)?'disabled':''}>${st.detail||''}</textarea>
+        <div style="margin-top:8px;">${locked ? '<span class="swatch s-completed">✓ Verified by Buddy — locked</span>' : '<span class="swatch s-pending">Pending Buddy Verification</span>'}</div>
+      ` : ''}
+    </div>
+  </div>`;
+}
+
+function renderStintTracker(intern, containerEl, who, closed, onUpdate){
+  const stintTasks = getStintTasks(intern.subFunction);
+  containerEl.innerHTML = stintTasks.map((t,i)=>stintTaskBlockHtml(t, i, intern.stint[i], who, closed)).join('');
+  bindAccordion(containerEl);
+
+  containerEl.querySelectorAll('select[data-role="stint-status"]').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      const idx = parseInt(sel.dataset.idx);
+      intern.stint[idx].status = sel.value;
+      await saveInterns();
+      onUpdate();
+      showToast("Individual Stint Task updated");
+    });
+  });
+  containerEl.querySelectorAll('textarea.stint-detail-box').forEach(box=>{
+    box.addEventListener('click', e=>e.stopPropagation());
+    box.addEventListener('change', async ()=>{
+      const idx = parseInt(box.dataset.idx);
+      intern.stint[idx].detail = box.value;
+      await saveInterns();
+      onUpdate();
+      showToast("Task details saved");
+    });
+  });
+}
+
 function renderInternView(){
   const intern = interns[internFocus];
   const batch = batches.find(b=>b.id===intern.batchId);
@@ -1479,18 +1547,7 @@ function renderInternView(){
     ? "Complete these post-OJT to close out your MARC stint."
     : "Task detail for this sub-function is pending — placeholders shown, to be finalized.";
   const stintEl = document.getElementById('intern-stint-list');
-  stintEl.innerHTML = stintTasks.map((t,i)=>activityHtml(t, i, intern.stint[i], 'stint', true)).join('');
-  bindAccordion(stintEl);
-  stintEl.querySelectorAll('select.status-select').forEach(sel=>{
-    sel.disabled = closed;
-    sel.addEventListener('change', async ()=>{
-      const idx = parseInt(sel.dataset.idx);
-      intern.stint[idx] = sel.value;
-      await saveInterns();
-      renderInternView();
-      showToast("Individual Stint Task updated");
-    });
-  });
+  renderStintTracker(intern, stintEl, 'stint', closed, renderInternView);
   document.getElementById('intern-stint-highlights').value = intern.stintHighlights || '';
   document.getElementById('intern-stint-highlights').disabled = closed;
   document.getElementById('save-stint-highlights-btn').disabled = closed;
@@ -1638,9 +1695,36 @@ function renderBuddyView(){
     const intern = interns[buddyFocus];
     renderOjtTracker(intern, batch, ojtEl, 'bojt', closed, renderBuddyView);
     const stintTasks = getStintTasks(intern.subFunction);
-    stintEl.innerHTML = `<p class="helptext" style="margin-top:0;">${intern.name}'s Individual Stint Task progress (self-marked by intern):</p>` +
-      stintTasks.map((t,i)=>`<div class="rowflex" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="font-size:13px;">${t.title}</span>${swatch(intern.stint[i]==='Completed'?'completed':(intern.stint[i]==='In Progress'?'progress':'pending'))}</div>`).join('') +
+    stintEl.innerHTML = `<p class="helptext" style="margin-top:0;">${intern.name}'s Individual Stint Tasks — once a task is marked Completed, review the details they've entered and mark it Verified or Not Verified. Details only become visible to RTL, GM, and TCH after you verify.</p>` +
+      stintTasks.map((t,i)=>{
+        const st = intern.stint[i];
+        const completed = st.status === 'Completed';
+        return `<div class="activity">
+          <div class="activity-head" style="cursor:default;">
+            <div class="activity-title"><span class="activity-num">${i+1}</span>${t.title}</div>
+            ${swatch(completed?'completed':(st.status==='In Progress'?'progress':'pending'))}
+          </div>
+          ${completed ? `<div class="activity-body" style="display:block;padding:0 16px 16px 48px;">
+            <label style="margin-top:0;">Details entered by ${intern.name}</label>
+            <div class="card" style="padding:10px 12px;font-size:12.5px;color:var(--ink-soft);white-space:pre-wrap;">${st.detail ? st.detail.replace(/</g,'&lt;') : '<em>No details entered yet — ask the intern to add them before you verify.</em>'}</div>
+            <label style="margin-top:10px;">Verification</label>
+            <select class="stint-verify-select" data-idx="${i}" ${closed?'disabled':''} style="max-width:200px;">
+              <option value="Not Verified" ${st.verification==='Not Verified'?'selected':''}>Not Verified</option>
+              <option value="Verified" ${st.verification==='Verified'?'selected':''}>Verified</option>
+            </select>
+          </div>` : ''}
+        </div>`;
+      }).join('') +
       (intern.stintHighlights ? `<div class="highlight-box"><b>⭐ Overachievement / Highlights:</b> ${intern.stintHighlights}</div>` : '');
+    stintEl.querySelectorAll('.stint-verify-select').forEach(sel=>{
+      sel.addEventListener('change', async ()=>{
+        const idx = parseInt(sel.dataset.idx);
+        intern.stint[idx].verification = sel.value;
+        await saveInterns();
+        renderBuddyView();
+        showToast(`Task ${idx+1} marked ${sel.value}`);
+      });
+    });
 
     renderBuddyFeedbackForm(intern, closed);
   }
@@ -1820,7 +1904,7 @@ function renderRtlInternTable(){
 /* ================= DRILL-DOWN: Batch → Interns → Detail ================= */
 function journeySummary(intern){
   const ojtDone = ojtActivitiesDoneCount(intern);
-  const stintDone = Object.values(intern.stint).filter(v=>v==='Completed').length;
+  const stintDone = Object.values(intern.stint).filter(v=>v.status==='Completed').length;
   const stintTotal = Object.keys(intern.stint).length;
   return {ojtDone, ojtPct: ojtCompletionPct(intern), stintDone, stintTotal, stintPct: stintTotal ? Math.round(stintDone/stintTotal*100) : 0};
 }
@@ -1885,7 +1969,7 @@ function openInternModal(idx){
     <div class="grid cols-4">
       <div class="stat"><div class="num">${intern.buddyEmpId ? 'Yes' : (intern.buddyAssigned === 'Yes' ? 'Yes*' : 'No')}</div><div class="lbl">Buddy Assigned${!intern.buddyEmpId && intern.buddyAssigned==='Yes' ? ' (*self-reported, not yet set by RTL)' : ''}</div></div>
       <div class="stat"><div class="num">${ojtActivitiesDoneCount(intern)}/6</div><div class="lbl">OJT Activities Completed</div></div>
-      <div class="stat"><div class="num">${Object.values(intern.stint).filter(v=>v==='Completed').length}/${Object.keys(intern.stint).length}</div><div class="lbl">Stint Tasks Completed</div></div>
+      <div class="stat"><div class="num">${Object.values(intern.stint).filter(v=>v.status==='Completed').length}/${Object.keys(intern.stint).length}</div><div class="lbl">Stint Tasks Completed</div></div>
       <div class="stat score-link" data-score-idx="${idx}" style="border-color:var(--gold);cursor:pointer;"><div class="num" style="color:var(--gold);">${overall!==null ? overall+'%' : '—'}</div><div class="lbl">Overall Blended Score (click for breakdown)</div></div>
     </div>
     ${intern.stintHighlights ? `<div class="highlight-box"><b>⭐ Overachievement / Highlights:</b> ${intern.stintHighlights}</div>` : ''}
@@ -1901,7 +1985,20 @@ function openInternModal(idx){
       }).join('')}
     </div>
     <div class="modal-section"><h4>Individual Stint Task Status</h4>
-      ${stintTasks.map((t,i)=>`<div class="mini-row"><span>${t.title}</span>${swatch(intern.stint[i]==='Completed'?'completed':(intern.stint[i]==='In Progress'?'progress':'pending'))}</div>`).join('')}
+      ${stintTasks.map((t,i)=>{
+        const st = intern.stint[i];
+        const completed = st.status === 'Completed';
+        let detailLine = '';
+        if(completed){
+          detailLine = st.verification === 'Verified'
+            ? `<div style="margin-top:6px;font-size:12px;color:var(--ink);background:#F6F4EF;border:1px solid var(--line);border-radius:7px;padding:8px 10px;white-space:pre-wrap;width:100%;"><b style="color:var(--swatch-completed);">✓ Verified by Buddy</b><br>${(st.detail||'(no details entered)').replace(/</g,'&lt;')}</div>`
+            : `<div style="margin-top:6px;font-size:11.5px;color:var(--swatch-progress);font-style:italic;">Awaiting Buddy verification — details are hidden until verified</div>`;
+        }
+        return `<div class="mini-row" style="flex-direction:column;align-items:flex-start;">
+          <div style="display:flex;justify-content:space-between;width:100%;"><span>${t.title}</span>${swatch(completed?'completed':(st.status==='In Progress'?'progress':'pending'))}</div>
+          ${detailLine}
+        </div>`;
+      }).join('')}
     </div>
     <div class="modal-section"><h4>Buddy's Rating of ${intern.name} ${bfOnIntern.submitted ? '— Avg '+buddyFbAvg(intern).toFixed(1)+'/5' : ''}</h4>${buddyRatingHtml}</div>
     <div class="modal-section"><h4>RTL Induction Feedback (given by intern)</h4>${fbRtlHtml}</div>
@@ -2153,7 +2250,7 @@ document.getElementById('add-intern-btn').addEventListener('click', async ()=>{
   const buddyEmpId = resolveBuddyEmpId(buddyInput.value);
   if(buddyEmpId === null){ showToast(`"${buddyInput.value}" doesn't match anyone in the Buddy Pool — pick a suggestion from the list, or leave it blank`); return; }
   interns.push({name, empId, batchId, buddyEmpId, buddyNameNote:"", subFunction, region, depotName:depotName||'—', completion:0, status:"progress",
-    buddyAssigned: buddyEmpId ? "Yes" : "No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(getStintTasks(subFunction).length), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
+    buddyAssigned: buddyEmpId ? "Yes" : "No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStintState(getStintTasks(subFunction).length), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
     fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]});
   await saveInterns();
   renderRtlView();
@@ -2174,7 +2271,7 @@ document.getElementById('csv-upload').addEventListener('change', async (e)=>{
     const [name, empId, batchId, buddyEmpId, subFunction, region, depotName] = line.split(",").map(s=>s&&s.trim());
     if(name && empId){
       interns.push({name, empId, batchId:batchId||batches[0].id, buddyEmpId:buddyEmpId||'', buddyNameNote:"", subFunction:subFunction||'Retail Sales', region:region||'Maharashtra', depotName:depotName||'—',
-        completion:0, status:"progress", buddyAssigned: buddyEmpId ? "Yes" : "No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStatusMap(getStintTasks(subFunction||'Retail Sales').length), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
+        completion:0, status:"progress", buddyAssigned: buddyEmpId ? "Yes" : "No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStintState(getStintTasks(subFunction||'Retail Sales').length), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
         fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]});
       added++;
     }
@@ -2202,7 +2299,7 @@ function computeClosingReportData(batchId){
 
   const internRows = list.map(i=>{
     const ojtDone = ojtActivitiesDoneCount(i);
-    const stintDone = Object.values(i.stint).filter(v=>v==='Completed').length;
+    const stintDone = Object.values(i.stint).filter(v=>v.status==='Completed').length;
     const stintTotal = Object.keys(i.stint).length;
     const overall = overallBlendedScore(i);
     const buddy = buddies.find(b=>b.empId===i.buddyEmpId);
