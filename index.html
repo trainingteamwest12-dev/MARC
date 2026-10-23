@@ -242,8 +242,10 @@
     <div class="entry-logo"></div>
     <h1>RTL / Admin</h1>
     <p class="tag">Master access — password protected</p>
+    <label>Your Name</label>
+    <select id="rtl-login-name"></select>
     <label>Password</label>
-    <input type="password" id="rtl-password" placeholder="Enter admin password">
+    <input type="password" id="rtl-password" placeholder="Enter your password">
     <button class="btn" id="rtl-submit">Unlock</button>
     <div class="entry-error" id="rtl-error"></div>
   </div>
@@ -423,6 +425,7 @@
         <button class="rtl-tab" data-sub="rtl-interns">Interns</button>
         <button class="rtl-tab" data-sub="rtl-stint-templates">Stint Tasks</button>
         <button class="rtl-tab" data-sub="rtl-report">Closing Report</button>
+        <button class="rtl-tab" data-sub="rtl-activity">Activity Log</button>
       </div>
 
       <div class="subview active" id="rtl-batches">
@@ -441,11 +444,7 @@
             <label>OJT Start Date <span class="helptext" style="display:inline;">(once Classroom Training is over — OJT day-count is calculated from here, not the batch start date)</span></label>
             <input type="date" id="b-ojtstart">
             <label>RTL Name</label>
-            <select id="b-rtl">
-              <option>Swapnil Dahiwal</option>
-              <option>Dummy 1</option>
-              <option>Dummy 3</option>
-            </select>
+            <select id="b-rtl"></select>
             <div style="margin-top:18px;"><button class="btn" id="create-batch-btn">Create Batch</button></div>
           </div>
           <div class="card">
@@ -548,6 +547,25 @@
             </div>
             <button class="btn" id="save-stint-template-btn">Save Template</button>
           </div>
+        </div>
+      </div>
+
+      <div class="subview" id="rtl-activity">
+        <div class="card">
+          <h3 style="margin-top:0;">RTL Activity Log <span class="helptext" style="display:inline;">(every batch, buddy, intern and task-template change, recorded against the RTL who made it)</span></h3>
+          <div class="rowflex" style="align-items:flex-end;">
+            <div style="min-width:220px;">
+              <label style="margin-top:0;">Filter by RTL</label>
+              <select id="activity-rtl-filter"></select>
+            </div>
+            <button class="btn ghost small" id="activity-refresh-btn">Refresh</button>
+            <button class="btn ghost small" id="activity-download-btn">Download Log (Excel)</button>
+          </div>
+          <p class="helptext" id="activity-status"></p>
+        </div>
+        <div class="card" style="padding:0;margin-top:14px;max-height:560px;overflow:auto;">
+          <table><thead><tr><th>When</th><th>RTL</th><th>Action</th><th>What</th><th>Batch</th><th>Details</th></tr></thead>
+          <tbody id="activity-log-table"></tbody></table>
         </div>
       </div>
 
@@ -690,7 +708,17 @@ const SUPABASE_KEY = "sb_publishable_SzEwQOXlQENfvT4k5jbEBA_7Wb4oMb8";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ================= CONSTANTS ================= */
-const RTL_PASSWORD = "MARC@2026";
+/* Each RTL logs in as themselves (name + that person's password); every RTL action is recorded against that name.
+   Swapnil Dahiwal and the two Dummy profiles still use the original shared password; the three newer profiles each have their own. */
+const RTL_USERS = {
+  "Swapnil Dahiwal": "MARC@2026",
+  "Dummy 1": "MARC@2026",
+  "Dummy 3": "MARC@2026",
+  "B Vidya Shankar": "RTL-ujrPs7",
+  "MD Zafar Ali Khan": "RTL-PxcxhL",
+  "Abu Talib": "RTL-UvLqG9"
+};
+const RTL_NAMES = Object.keys(RTL_USERS);
 const TCH_PASSWORD = "TCH@2026";
 const COORDINATOR_PASSWORD = "COORD@2026";
 
@@ -963,6 +991,72 @@ function showDbError(label, e){
   }
 }
 
+/* ================= RTL ACTIVITY LOG ================= */
+/* Records who (which RTL) did what. Never blocks the action itself: if the log table isn't set up
+   or the write fails, the RTL's change still goes through and a warning is shown once per session. */
+let activityLogWarned = false;
+async function logActivity(action, target, details, batchId){
+  const actor = (currentUser && currentUser.role === 'rtl' && currentUser.name) ? currentUser.name : 'Unknown';
+  try{
+    const {error} = await sb.from('activity_log').insert([{
+      actor, action, target: target || null, batch_id: batchId || null, details: details || null
+    }]);
+    if(error) throw error;
+  }catch(e){
+    console.error('Activity log write failed', e);
+    if(!activityLogWarned){
+      activityLogWarned = true;
+      // persistent banner (a toast would be overwritten by the normal success message a split-second later)
+      showDbError("Activity Log is NOT recording — your changes were saved, but they are not being logged. Has the activity_log table been created in Supabase?", e);
+    }
+  }
+}
+
+let activityLogRows = [];
+async function loadActivityLog(){
+  const statusEl = document.getElementById('activity-status');
+  statusEl.textContent = 'Loading…';
+  try{
+    const {data, error} = await sb.from('activity_log').select('*').order('created_at', {ascending:false}).limit(1000);
+    if(error) throw error;
+    activityLogRows = data || [];
+    statusEl.textContent = activityLogRows.length ? `Showing the latest ${activityLogRows.length} entries.` : 'No activity recorded yet.';
+  }catch(e){
+    activityLogRows = [];
+    statusEl.textContent = 'Could not load the log — the activity_log table may not have been created in Supabase yet.';
+    console.error('Activity log load failed', e);
+  }
+  renderActivityLogTable();
+}
+function renderActivityLogTable(){
+  const sel = document.getElementById('activity-rtl-filter');
+  const chosen = sel.value;
+  const actorsSeen = [...new Set([...RTL_NAMES, ...activityLogRows.map(r=>r.actor)])];
+  sel.innerHTML = `<option value="">All RTLs</option>` + actorsSeen.map(n=>`<option>${n}</option>`).join('');
+  sel.value = actorsSeen.includes(chosen) ? chosen : '';
+  const rows = sel.value ? activityLogRows.filter(r=>r.actor===sel.value) : activityLogRows;
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  document.getElementById('activity-log-table').innerHTML = rows.map(r=>`
+    <tr><td style="white-space:nowrap;">${new Date(r.created_at).toLocaleString('en-IN')}</td><td><b>${esc(r.actor)}</b></td><td>${esc(r.action)}</td><td>${esc(r.target)}</td><td>${esc(r.batch_id)||'—'}</td><td style="font-size:12px;color:var(--ink-soft);">${esc(r.details)}</td></tr>
+  `).join('') || `<tr><td colspan="6" class="empty">No entries${sel.value?' for '+esc(sel.value):''}.</td></tr>`;
+}
+document.getElementById('activity-rtl-filter').addEventListener('change', renderActivityLogTable);
+document.getElementById('activity-refresh-btn').addEventListener('click', loadActivityLog);
+document.getElementById('activity-download-btn').addEventListener('click', ()=>{
+  const sel = document.getElementById('activity-rtl-filter').value;
+  const rows = sel ? activityLogRows.filter(r=>r.actor===sel) : activityLogRows;
+  if(!rows.length){ showToast("Nothing to download yet"); return; }
+  const sheet = XLSX.utils.json_to_sheet(rows.map(r=>({
+    "When": new Date(r.created_at).toLocaleString('en-IN'), "RTL": r.actor, "Action": r.action,
+    "What": r.target||'', "Batch": r.batch_id||'', "Details": r.details||''
+  })));
+  sheet['!cols'] = [{wch:22},{wch:20},{wch:30},{wch:34},{wch:20},{wch:60}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, sheet, "RTL Activity Log");
+  XLSX.writeFile(wb, `MARC_RTL_Activity_Log${sel?'_'+sel.replace(/[^a-zA-Z0-9]/g,'_'):''}.xlsx`);
+  showToast("Activity log downloaded");
+});
+
 /* ================= STORAGE (Supabase) ================= */
 async function loadAll(){
   try{
@@ -1108,6 +1202,7 @@ document.querySelectorAll('.role-btn[data-role]').forEach(btn=>{
     }else if(role === 'rtl'){
       document.getElementById('rtl-error').style.display='none';
       document.getElementById('rtl-password').value='';
+      document.getElementById('rtl-login-name').innerHTML = RTL_NAMES.map(n=>`<option>${n}</option>`).join('');
       showScreen('screen-rtl-auth');
     }else if(role === 'gm'){
       const gmBtnBox = document.getElementById('gm-region-buttons');
@@ -1178,13 +1273,14 @@ document.getElementById('entry-submit').addEventListener('click', async ()=>{
 
 document.getElementById('rtl-submit').addEventListener('click', async ()=>{
   const pw = document.getElementById('rtl-password').value;
+  const rtlName = document.getElementById('rtl-login-name').value;
   const err = document.getElementById('rtl-error');
-  if(pw === RTL_PASSWORD){
-    currentUser = {role:'rtl'};
+  if(RTL_USERS[rtlName] !== undefined && pw === RTL_USERS[rtlName]){
+    currentUser = {role:'rtl', name: rtlName};
     await loadAll();
     enterApp();
   }else{
-    err.textContent = "Incorrect password.";
+    err.textContent = "Incorrect name or password.";
     err.style.display = 'block';
   }
 });
@@ -1269,7 +1365,8 @@ function enterApp(){
     renderBuddyView();
   }else if(currentUser.role === 'rtl'){
     document.getElementById('view-rtl').classList.add('active');
-    who.innerHTML = `<b>RTL / Admin</b><br>Master Access`;
+    who.innerHTML = `<b>RTL — ${currentUser.name}</b><br>Master Access`;
+    document.getElementById('b-rtl').innerHTML = ''; // forget the previous RTL's pick so the batch owner defaults to whoever just logged in
     renderRtlView();
     loadStintTemplateDraft(document.getElementById('stint-template-subfunction').value);
   }else if(currentUser.role === 'gm'){
@@ -1785,6 +1882,7 @@ document.querySelectorAll('.rtl-tab').forEach(tab=>{
     tab.classList.add('active');
     document.querySelectorAll('#view-rtl .subview').forEach(v=>v.classList.remove('active'));
     document.getElementById(tab.dataset.sub).classList.add('active');
+    if(tab.dataset.sub === 'rtl-activity') loadActivityLog();
   });
 });
 
@@ -1795,6 +1893,10 @@ function renderRtlView(){
   document.getElementById('f-batch').innerHTML = batchOpts;
   document.getElementById('report-batch-select').innerHTML = batchOpts;
   document.getElementById('f-buddy-list').innerHTML = buddies.map(b=>`<option value="${b.name} (${b.empId})">`).join('');
+  const bRtlSel = document.getElementById('b-rtl');
+  const prevRtlChoice = bRtlSel.value;
+  bRtlSel.innerHTML = RTL_NAMES.map(n=>`<option>${n}</option>`).join('');
+  bRtlSel.value = RTL_NAMES.includes(prevRtlChoice) ? prevRtlChoice : (currentUser && currentUser.name) || RTL_NAMES[0];
   document.getElementById('f-region').innerHTML = ZONE_NAMES.map(z=>
     `<optgroup label="${z}">${ZONES[z].map(st=>`<option value="${st}">${st}</option>`).join('')}</optgroup>`
   ).join('');
@@ -1826,6 +1928,7 @@ function renderRtlView(){
       const b = batches.find(x=>x.id===btn.dataset.id);
       b.status = "Closed";
       await saveBatches();
+      await logActivity("Closed batch", b.name, "Batch closed manually; all entries now read-only", b.id);
       renderRtlView();
       showToast(b.name + " closed. All entries now read-only.");
     });
@@ -1835,8 +1938,10 @@ function renderRtlView(){
       const b = batches.find(x=>x.id===btn.dataset.id);
       const input = document.querySelector(`.ojt-start-input[data-id="${btn.dataset.id}"]`);
       if(!input.value){ showToast("Pick a date first"); return; }
+      const oldOjtStart = b.ojtStart || 'not set';
       b.ojtStart = input.value;
       await saveBatches();
+      await logActivity("Updated OJT Start Date", b.name, `${oldOjtStart} → ${input.value}`, b.id);
       renderRtlView();
       showToast(`OJT Start Date updated for ${b.name}`);
     });
@@ -2083,17 +2188,26 @@ document.getElementById('save-intern-edit-btn').addEventListener('click', async 
   const newBuddyEmpId = resolveBuddyEmpId(buddyInput.value);
   if(newBuddyEmpId === null){ showToast(`"${buddyInput.value}" doesn't match anyone in the Buddy Pool — pick a suggestion from the list, or clear the field for none`); return; }
   const buddyChanged = newBuddyEmpId !== intern.buddyEmpId;
+  const before = {buddyEmpId: intern.buddyEmpId, subFunction: intern.subFunction, region: intern.region, depotName: intern.depotName, ojtUnlocked: !!intern.ojtUnlocked};
   intern.buddyEmpId = newBuddyEmpId;
   intern.subFunction = document.getElementById('edit-subfunction').value;
   intern.region = document.getElementById('edit-region').value.trim();
   intern.depotName = document.getElementById('edit-depot').value.trim() || '—';
   intern.ojtUnlocked = document.getElementById('edit-ojt-unlock').checked;
+  const buddyLabel = id => { const b = buddies.find(x=>x.empId===id); return b ? `${b.name} (${b.empId})` : 'none'; };
+  const changes = [];
+  if(before.buddyEmpId !== intern.buddyEmpId) changes.push(`Buddy: ${buddyLabel(before.buddyEmpId)} → ${buddyLabel(intern.buddyEmpId)}`);
+  if(before.subFunction !== intern.subFunction) changes.push(`Sub-function: ${before.subFunction} → ${intern.subFunction}`);
+  if((before.region||'') !== (intern.region||'')) changes.push(`Region: ${before.region||'—'} → ${intern.region||'—'}`);
+  if((before.depotName||'—') !== intern.depotName) changes.push(`Depot: ${before.depotName||'—'} → ${intern.depotName}`);
+  if(before.ojtUnlocked !== intern.ojtUnlocked) changes.push(`Overdue OJT reopening: ${before.ojtUnlocked?'on':'off'} → ${intern.ojtUnlocked?'on':'off'}`);
   if(buddyChanged){
     intern.buddyAssigned = newBuddyEmpId ? "Yes" : "No";
     const newBuddy = buddies.find(b=>b.empId===newBuddyEmpId);
     pushNotification(intern, newBuddy ? `Buddy reassigned: ${newBuddy.name}` : "Buddy assignment removed");
   }
   await saveInterns();
+  await logActivity("Edited intern", `${intern.name} (${intern.empId})`, changes.length ? changes.join('; ') : 'Saved with no changes', intern.batchId);
   document.getElementById('intern-edit-overlay').classList.remove('show');
   renderRtlView();
   showToast(intern.name + "'s details updated");
@@ -2112,6 +2226,7 @@ document.getElementById('delete-intern-btn').addEventListener('click', async ()=
   }
   interns.splice(editFocusIdx, 1);
   editFocusIdx = null;
+  await logActivity("Removed intern", `${intern.name} (${intern.empId})`, `Removed from batch ${intern.batchId}`, intern.batchId);
   document.getElementById('intern-edit-overlay').classList.remove('show');
   renderRtlView();
   showToast(intern.name + " removed from batch");
@@ -2143,12 +2258,18 @@ document.getElementById('save-buddy-edit-btn').addEventListener('click', async (
   const buddy = buddies[editBuddyFocusIdx];
   const name = document.getElementById('edit-bd-name').value.trim();
   if(!name){ showToast("Buddy name can't be empty"); return; }
+  const bBefore = {name: buddy.name, designation: buddy.designation, region: buddy.region, depotName: buddy.depotName, status: buddy.status};
   buddy.name = name;
   buddy.designation = document.getElementById('edit-bd-desig').value.trim() || '—';
   buddy.region = document.getElementById('edit-bd-region').value.trim() || '—';
   buddy.depotName = document.getElementById('edit-bd-depot').value.trim() || '—';
   buddy.status = document.getElementById('edit-bd-status').value;
+  const bChanges = [];
+  [['name','Name'],['designation','Designation'],['region','Region'],['depotName','Depot'],['status','Status']].forEach(([k,label])=>{
+    if((bBefore[k]||'—') !== (buddy[k]||'—')) bChanges.push(`${label}: ${bBefore[k]||'—'} → ${buddy[k]}`);
+  });
   await saveBuddies();
+  await logActivity("Edited buddy", `${buddy.name} (${buddy.empId})`, bChanges.length ? bChanges.join('; ') : 'Saved with no changes', null);
   document.getElementById('buddy-edit-overlay').classList.remove('show');
   renderRtlView();
   showToast(buddy.name + "'s details updated");
@@ -2169,6 +2290,7 @@ document.getElementById('delete-buddy-btn').addEventListener('click', async ()=>
   }
   buddies.splice(editBuddyFocusIdx, 1);
   editBuddyFocusIdx = null;
+  await logActivity("Removed buddy", `${buddy.name} (${buddy.empId})`, assignedCount>0 ? `Removed from the Buddy Pool while guiding ${assignedCount} intern(s)` : 'Removed from the Buddy Pool', null);
   document.getElementById('buddy-edit-overlay').classList.remove('show');
   renderRtlView();
   showToast(buddy.name + " removed from Buddy Pool");
@@ -2184,6 +2306,7 @@ document.getElementById('create-batch-btn').addEventListener('click', async ()=>
   if(!ojtStart){ showToast("Please set the OJT Start Date — OJT day scheduling depends on it"); return; }
   batches.push({id:name, name, type, start, ojtStart, close: computeCloseDate(start, type), rtl, status:"Active"});
   await saveBatches();
+  await logActivity("Created batch", name, `${type} · Start ${start} · OJT Start ${ojtStart} · Batch RTL: ${rtl}`, name);
   renderRtlView();
   document.getElementById('b-name').value=''; document.getElementById('b-start').value=''; document.getElementById('b-ojtstart').value='';
   showToast("Batch created: " + name);
@@ -2202,6 +2325,7 @@ document.getElementById('add-subfunction-btn').addEventListener('click', async (
     return;
   }
   SUB_FUNCTIONS.push(name);
+  await logActivity("Added sub-function", name, "New sub-function added to the list", null);
   renderRtlView();
   input.value = '';
   showToast(`"${name}" added — now selectable when adding or editing interns`);
@@ -2216,6 +2340,7 @@ document.getElementById('add-buddy-btn').addEventListener('click', async ()=>{
   if(!name || !empId){ showToast("Enter buddy name and Employee ID"); return; }
   buddies.push({name, empId, designation:desig||'—', region:region||'—', depotName:depotName||'—', status:'Active'});
   await saveBuddies();
+  await logActivity("Added buddy", `${name} (${empId})`, `${desig||'—'} · ${region||'—'} · ${depotName||'—'}`, null);
   renderRtlView();
   ['bd-name','bd-empid','bd-desig','bd-region','bd-depot'].forEach(id=>document.getElementById(id).value='');
   showToast(name + " added to Buddy Pool");
@@ -2234,7 +2359,9 @@ document.getElementById('buddy-csv-upload').addEventListener('change', async (e)
     const [name, empId, desig, region, depotName] = line.split(",").map(s=>s&&s.trim());
     if(name && empId){ buddies.push({name, empId, designation:desig||'—', region:region||'—', depotName:depotName||'—', status:'Active'}); added++; }
   });
-  await saveBuddies(); renderRtlView();
+  await saveBuddies();
+  await logActivity("Bulk uploaded buddies", `${added} buddy(ies)`, `File: ${file.name}`, null);
+  renderRtlView();
   showToast(`${added} buddy(ies) added to pool`);
 });
 
@@ -2253,6 +2380,8 @@ document.getElementById('add-intern-btn').addEventListener('click', async ()=>{
     buddyAssigned: buddyEmpId ? "Yes" : "No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStintState(getStintTasks(subFunction).length), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
     fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]});
   await saveInterns();
+  const addedBuddy = buddies.find(b=>b.empId===buddyEmpId);
+  await logActivity("Added intern", `${name} (${empId})`, `${subFunction} · ${region} · Buddy: ${addedBuddy ? addedBuddy.name+' ('+addedBuddy.empId+')' : 'none yet'}`, batchId);
   renderRtlView();
   ['f-name','f-empid','f-depot','f-buddy'].forEach(id=>document.getElementById(id).value='');
   showToast(name + " added to batch");
@@ -2267,16 +2396,20 @@ document.getElementById('csv-upload').addEventListener('change', async (e)=>{
   const text = await file.text();
   const lines = text.trim().split("\n").slice(1);
   let added = 0;
+  const batchesTouched = new Set();
   lines.forEach(line=>{
     const [name, empId, batchId, buddyEmpId, subFunction, region, depotName] = line.split(",").map(s=>s&&s.trim());
     if(name && empId){
+      batchesTouched.add(batchId||batches[0].id);
       interns.push({name, empId, batchId:batchId||batches[0].id, buddyEmpId:buddyEmpId||'', buddyNameNote:"", subFunction:subFunction||'Retail Sales', region:region||'Maharashtra', depotName:depotName||'—',
         completion:0, status:"progress", buddyAssigned: buddyEmpId ? "Yes" : "No", rtl:"Not Completed", ojt:defaultOjtState(), stint:defaultStintState(getStintTasks(subFunction||'Retail Sales').length), stintHighlights:"", marcScore:null, genAiScore:null, ojtUnlocked:false,
         fbRtl:defaultFbMap(6,0), fbBuddy:defaultFbMap(6,3), buddyFbOnIntern:defaultBuddyFbOnIntern(), notifications:[]});
       added++;
     }
   });
-  await saveInterns(); renderRtlView();
+  await saveInterns();
+  await logActivity("Bulk uploaded interns", `${added} intern(s)`, `File: ${file.name} · Batch(es): ${[...batchesTouched].join(', ')}`, batchesTouched.size === 1 ? [...batchesTouched][0] : null);
+  renderRtlView();
   document.getElementById('csv-status').textContent = `${added} intern(s) added.`;
   showToast(`${added} intern(s) added from batch upload`);
 });
@@ -2349,7 +2482,7 @@ document.getElementById('generate-report-btn').addEventListener('click', ()=>{
     </section>`;
 });
 
-document.getElementById('download-report-btn').addEventListener('click', ()=>{
+document.getElementById('download-report-btn').addEventListener('click', async ()=>{
   const batchId = document.getElementById('report-batch-select').value;
   const d = computeClosingReportData(batchId);
 
@@ -2394,9 +2527,25 @@ document.getElementById('download-report-btn').addEventListener('click', ()=>{
   wsRisk['!cols'] = [{wch:20},{wch:14},{wch:16}];
   XLSX.utils.book_append_sheet(wb, wsRisk, "At-Risk Interns");
 
+  // Who did what for this batch (RTL activity), oldest first so it reads as a timeline
+  let activityNote = '';
+  try{
+    const {data: logRows, error} = await sb.from('activity_log').select('*').eq('batch_id', batchId).order('created_at', {ascending:true});
+    if(error) throw error;
+    const logData = (logRows||[]).map(r=>({
+      "When": new Date(r.created_at).toLocaleString('en-IN'), "RTL": r.actor, "Action": r.action, "What": r.target||'', "Details": r.details||''
+    }));
+    const wsLog = XLSX.utils.json_to_sheet(logData.length ? logData : [{"When":"","RTL":"","Action":"No RTL activity recorded for this batch","What":"","Details":""}]);
+    wsLog['!cols'] = [{wch:22},{wch:20},{wch:28},{wch:34},{wch:60}];
+    XLSX.utils.book_append_sheet(wb, wsLog, "RTL Activity Log");
+  }catch(e){
+    console.error('Could not add activity log to report', e);
+    activityNote = ' (the RTL Activity Log sheet could not be added — activity_log table not reachable)';
+  }
+
   const safeName = d.batch.name.replace(/[^a-zA-Z0-9-_]/g,'_');
   XLSX.writeFile(wb, `MARC_Closing_Report_${safeName}.xlsx`);
-  showToast("Excel report downloaded");
+  showToast("Excel report downloaded" + activityNote);
 });
 
 function downloadCsv(content, filename){
@@ -2569,6 +2718,7 @@ document.getElementById('save-stint-template-btn').addEventListener('click', asy
     return;
   }
   stintTemplates[subFunction] = JSON.parse(JSON.stringify(currentStintTemplateDraft));
+  await logActivity("Saved stint task template", subFunction, `${currentStintTemplateDraft.length} task(s): ${currentStintTemplateDraft.map(t=>t.title).join(' | ')}`, null);
   showToast(`Stint task template saved for ${subFunction}`);
 });
 document.getElementById('reset-stint-template-btn').addEventListener('click', async ()=>{
@@ -2582,6 +2732,7 @@ document.getElementById('reset-stint-template-btn').addEventListener('click', as
     return;
   }
   delete stintTemplates[subFunction];
+  await logActivity("Reset stint task template", subFunction, "Customisation removed; default task list restored", null);
   loadStintTemplateDraft(subFunction);
   showToast(`${subFunction} reset to default tasks`);
 });
