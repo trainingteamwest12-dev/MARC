@@ -436,8 +436,8 @@
             <input type="text" id="b-name" placeholder="e.g. WEST-SIB-2026-01">
             <label>Batch Type</label>
             <select id="b-type">
-              <option value="Summer Intern">Summer Intern Batch (auto-closes in 2 months)</option>
-              <option value="Off-Role to On-Role">Off-Role to On-Role Batch (auto-closes in 1 month)</option>
+              <option value="Summer Intern">Summer Intern Batch (planned duration: 2 months)</option>
+              <option value="Off-Role to On-Role">Off-Role to On-Role Batch (planned duration: 1 month)</option>
             </select>
             <label>Start Date <span class="helptext" style="display:inline;">(Classroom Training / RTL Session begins)</span></label>
             <input type="date" id="b-start">
@@ -1167,8 +1167,7 @@ async function saveInterns(){
 function isBatchClosed(batchId){
   const b = batches.find(x=>x.id===batchId);
   if(!b) return true;
-  if(b.status === "Closed") return true;
-  return new Date() > new Date(b.close);
+  return b.status === "Closed"; // closes only when an RTL clicks "Close Now" — never automatically by date
 }
 
 /* ================= ENTRY SCREEN ================= */
@@ -1912,7 +1911,7 @@ function renderRtlView(){
       <div class="rowflex" style="justify-content:space-between;">
         <div><button class="link-btn" style="font-size:13.5px;" data-batchid="${b.id}" data-target="rtl-batch-drilldown">${b.name}</button>
         <div class="helptext">${b.type} · RTL: ${b.rtl} · ${count} interns</div>
-        <div class="helptext">Start: ${b.start} → Close: ${b.close}</div></div>
+        <div class="helptext">Start: ${b.start} → Planned end: ${b.close} <span style="color:var(--ink-soft);">(info only — stays open until you click Close Now)</span></div></div>
         <div>${swatch(b.status==='Closed'?'delayed':'completed')} ${b.status==='Active'?`<button class="btn ghost small close-batch-btn" data-id="${b.id}">Close Now</button>`:''}</div>
       </div>
       <div class="rowflex" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);align-items:center;">
@@ -2493,7 +2492,7 @@ document.getElementById('download-report-btn').addEventListener('click', async (
     ["Batch Type", d.batch.type],
     ["RTL", d.batch.rtl],
     ["Start Date", d.batch.start],
-    ["Close Date", d.batch.close],
+    ["Planned End Date (info only)", d.batch.close],
     ["Status", d.batch.status],
     [],
     ["Metric", "Value"],
